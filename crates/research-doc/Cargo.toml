@@ -1,0 +1,10 @@
+[package]
+name = "research-doc"
+description = "Computational document format (cells, narrative, results) and .ipynb import/export."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]

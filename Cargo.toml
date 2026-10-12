@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/research-core",
+    "crates/research-store",
+    "crates/research-doc",
+    "crates/research-compute",
+    "crates/research-package",
+    "crates/research-agents",
+    "crates/research-license",
+    "crates/research-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tpt-apps/tpt-app-research-os"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+thiserror = "2"
+anyhow = "1"
+
+# TPT-Solutions foundation crates (github.com/TPT-Solutions/*) are added here,
+# pinned by rev, once each spike in TODO.md confirms the crate name and API.
+
+# Internal crates
+research-core = { path = "crates/research-core" }
+research-store = { path = "crates/research-store" }
+research-doc = { path = "crates/research-doc" }
+research-compute = { path = "crates/research-compute" }
+research-package = { path = "crates/research-package" }
+research-agents = { path = "crates/research-agents" }
+research-license = { path = "crates/research-license" }
+research-app = { path = "crates/research-app" }

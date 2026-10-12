@@ -1,0 +1,134 @@
+# TPT App — Research OS
+
+**Repository:** `tpt-app-research-os`  
+**Codename:** Research  
+**License:** Dual MIT OR Apache-2.0  
+**Status:** Design  
+
+**Primary foundation crates used:**  
+`tpt-keystone-db` · `tpt-math` · `tpt-science` · `tpt-chemistry` · `tpt-fem` · `tpt-appfront` · `tpt-anima` (light) · `tpt-mathr` · light use of `tpt-primitives` and `tpt-crypto`
+
+---
+
+## 1. Purpose & Vision
+
+A specialised offline desktop environment for scientific and engineering research computing.
+
+It unifies a multi-engine local database, high-quality numerical and scientific libraries, optional agent assistance, and a coherent UI into a single reproducible, memory-safe workstation that never requires the cloud.
+
+Target users: researchers, computational scientists, engineers, and small labs who currently maintain fragile stacks of Jupyter + various solvers + databases + scripts, and who value auditability, reproducibility and data ownership.
+
+The same codebase is released as open source (MIT OR Apache-2.0) and packaged as convenient pre-built binaries sold on Gumroad.
+
+---
+
+## 2. Problem Statement
+
+Scientific computing workflows today are typically:
+
+- Fragmented across many tools and languages
+- Difficult to make fully reproducible
+- Dependent on cloud notebooks or remote HPC for anything non-trivial
+- Hard to audit for correctness and dependency safety
+- Painful to move between machines or share cleanly
+
+There is no polished, offline-first, memory-safe environment that treats the combination of data + numerics + light agents as a first-class local workstation.
+
+---
+
+## 3. Solution Overview
+
+| Capability                  | Source Repo(s)              | Role                                              |
+|-----------------------------|-----------------------------|---------------------------------------------------|
+| Local multi-engine storage  | tpt-keystone-db             | Structured data, results, experiment metadata, vector/search |
+| Numerical substrate         | tpt-math + tpt-mathr        | Units, linear algebra, probability, autodiff, arbitrary precision |
+| Scientific simulation       | tpt-science                 | ODE/DAE, PDE, probabilistic programming, rigid-body, etc. |
+| Domain libraries            | tpt-chemistry · tpt-fem     | Molecular / quantum chemistry and finite-element tools |
+| Light agent assistance      | tpt-anima (subset)          | Optional local agents for experiment tracking, analysis helpers |
+| UI                          | tpt-appfront                | Unified native desktop interface                  |
+| Shared primitives           | tpt-primitives              | Identity, capability, evidence, claim             |
+
+Users work inside “Research Projects” that contain data, notebooks-style computational documents, simulation setups, and results — all stored locally and versionable.
+
+---
+
+## 4. Core Features
+
+### MVP (v1.0)
+
+- Project-based workspace with local Keystone database
+- Interactive computational documents (code + results + narrative)
+- Access to core numerical and scientific libraries
+- Basic experiment tracking and result storage
+- Import/export of projects as self-contained packages
+- Optional light local agent helpers (analysis suggestions, reproducibility checks)
+- Fully offline operation
+- Native desktop binaries (Windows, macOS, Linux)
+
+### Later versions (no commitment)
+
+- Deeper integration of chemistry and FEM solvers
+- Stronger agent capabilities
+- Distributed local compute (multiple machines on LAN)
+- Formal claims / reproducibility certificates
+- Headless / batch mode
+
+---
+
+## 5. Licensing & Dependency Rules
+
+- Application is dual-licensed MIT OR Apache-2.0.
+- All dependencies must be compatible with both MIT and Apache-2.0 (no Apache-only crates).
+- Foundation crates already under dual licence are used directly.
+
+---
+
+## 6. Security & Privacy Model
+
+- All data and computation stay on the user’s machines by default.
+- No telemetry, no mandatory accounts, no automatic uploads.
+- Project packages can be encrypted on export.
+- Agents (when enabled) run under explicit capability restrictions.
+
+---
+
+## 7. Distribution Model
+
+1. **Open Source**  
+   Full source available under MIT OR Apache-2.0. Anyone can build it.
+
+2. **Gumroad**  
+   Pre-built, signed binaries + installer sold as a one-time purchase.  
+   No updates are promised.  
+   Purchasers may submit approved error reports that may be considered for a future major release.
+
+Buyers do not need to know the source is open.
+
+---
+
+## 8. Non-Goals (v1)
+
+- Cloud notebook service or multi-tenant platform
+- Full replacement for every domain-specific commercial solver on day one
+- Guaranteed ongoing updates or support
+- Mobile application
+- Heavy LLM features that require large model downloads by default
+
+---
+
+## 9. Success Criteria
+
+- A researcher can create a project, run numerical/scientific workflows, store results, and move the entire project to another machine without friction
+- The environment feels coherent rather than a loose collection of libraries
+- Everything remains usable fully offline
+- The same codebase serves both open-source builders and Gumroad customers cleanly
+
+---
+
+## 10. Open Questions
+
+- Exact computational document format (custom vs lightweight notebook-compatible)
+- How much of the scientific library surface to expose in the MVP UI vs keep as libraries
+- Strategy for optional larger models or solvers (bundled vs user-provided)
+- Desktop shell choice (pure AppFront native vs thin Tauri wrapper)
+- Default project package format and signing

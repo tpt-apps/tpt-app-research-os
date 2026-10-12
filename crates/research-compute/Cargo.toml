@@ -1,0 +1,10 @@
+[package]
+name = "research-compute"
+description = "Execution engine for document cells over tpt-math / tpt-science / tpt-mathr."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
