@@ -23,16 +23,24 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 thiserror = "2"
 anyhow = "1"
+ed25519-dalek = { version = "2", features = ["std"] }
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+getrandom = "0.3"
+base64 = "0.22"
 
-# TPT-Solutions foundation crates (github.com/TPT-Solutions/*) are added here,
-# pinned by rev, once each spike in TODO.md confirms the crate name and API.
+# TPT-Solutions foundation crates (github.com/TPT-Solutions/*), pinned by rev.
+# Same rev as tpt-app-digital-twin. Added one at a time as each spike in TODO.md confirms it.
+tpt-keystone = { git = "https://github.com/TPT-Solutions/tpt-keystone-db", rev = "b861edd6f01e08061e0e1f3a86e6a2a1e1f2f449", version = "0.1.0", default-features = false }
 
 # Internal crates
-research-core = { path = "crates/research-core" }
-research-store = { path = "crates/research-store" }
-research-doc = { path = "crates/research-doc" }
-research-compute = { path = "crates/research-compute" }
-research-package = { path = "crates/research-package" }
-research-agents = { path = "crates/research-agents" }
-research-license = { path = "crates/research-license" }
-research-app = { path = "crates/research-app" }
+research-core = { path = "crates/research-core", version = "0.1.0" }
+research-store = { path = "crates/research-store", version = "0.1.0" }
+research-doc = { path = "crates/research-doc", version = "0.1.0" }
+research-compute = { path = "crates/research-compute", version = "0.1.0" }
+research-package = { path = "crates/research-package", version = "0.1.0" }
+research-agents = { path = "crates/research-agents", version = "0.1.0" }
+research-license = { path = "crates/research-license", version = "0.1.0" }
+research-app = { path = "crates/research-app", version = "0.1.0" }
