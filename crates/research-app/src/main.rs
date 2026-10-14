@@ -1,29 +1,31 @@
-//! TPT Research OS desktop shell. This is the first spike: a native window built
-//! with AppFront's canvas backend. It shows that the window opens and that a
-//! button event reaches Rust. The document editor is not built yet.
+//! TPT Research OS desktop window. Opens the project in the directory given on the
+//! command line, or `research-project` in the current directory, creating it if it
+//! does not exist yet.
 
-use tpt_appfront_core::{Signal, UITree};
+use std::cell::RefCell;
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Debug, Clone)]
-enum Msg {
-    Refresh,
-}
+use research_app::{apply, view, Editor, Msg, Workspace};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let presses = Signal::new(0u32);
-
-    let shown = presses.clone();
-    let build_ui = move || -> UITree<Msg> {
-        UITree::container(|c| {
-            c.heading(1, "TPT Research OS");
-            c.text(format!("Shell ready. Button presses: {}", shown.get()));
-            c.button("Refresh").on_click(Msg::Refresh);
-        })
+    let dir = std::env::args()
+        .nth(1)
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("research-project"));
+    let workspace = if dir.join("manifest.json").exists() {
+        Workspace::open(&dir)?
+    } else {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        Workspace::create(&dir, "research-project", "Research project", now)?
     };
 
-    let dispatch = move |msg: Msg| match msg {
-        Msg::Refresh => presses.set(presses.get() + 1),
-    };
+    let editor = Rc::new(RefCell::new(Editor::new(workspace)));
+    let for_view = editor.clone();
+    let build_ui = move || view(&for_view.borrow());
+    let for_apply = editor.clone();
+    let dispatch = move |msg: Msg| apply(&mut for_apply.borrow_mut(), msg);
 
     tpt_appfront_canvas::run_native("TPT Research OS", build_ui, dispatch)?;
     Ok(())

@@ -59,9 +59,9 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Record every run into research-store: each cell that runs becomes a run, with its outputs and value as results
 
 ## 6. research-app (AppFront UI)
-- [~] Main window: a spike window opens (heading, status, button). Project open/create dialogs not built
+- [~] Main window: opens the project in the directory given on the command line (created if missing). Starts and stays running; not yet checked by clicking through. No open/create dialog
 - [ ] Project browser (documents, runs, data)
-- [~] Document editor: the model is done (`research-app` `Workspace`: create/open project, documents, run with recording, reopen). Cells, run buttons, inline results and narrative rendering in the window are not built yet
+- [~] Document editor: documents list, open/new, cell source edits, add code and text cells, run, save, and outputs shown as text. Headless logic tested (`editor.rs`, `view.rs`). Narrative rendering of text cells is plain text; no inline plots or tables yet
 - [ ] Plot viewer
 - [ ] Experiment/run comparison view
 - [ ] Settings (agents on/off, paths)
