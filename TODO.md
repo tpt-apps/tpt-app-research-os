@@ -18,14 +18,14 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 
 ## 1. Foundation-crate spikes (confirm names, APIs, licences — spec §5)
 - [~] `tpt-keystone-db`: open a local DB, store/query a record ✓ (builds on Windows; used by research-store), vector search not yet tried. Gotchas: `key` is a reserved word in its SQL; its lease has no release API and does not block a second handle with the same holder id, so research-store takes an OS file lock instead.
-- [ ] `tpt-math` (local checkout exists) + `tpt-mathr`: units, linalg, autodiff, arbitrary precision
-- [ ] `tpt-science`: ODE solve end to end (watch the cranelift version issue seen in digital-twin's vendored `tpt-sci-ode`)
+- [~] `tpt-math` pinned at GitHub master (a16a8f5): `linalg-dense` (solve) and `prob-dist` (normal) build and are bound in research-compute. Units, autodiff, arbitrary precision and `tpt-mathr` not yet checked
+- [x] `tpt-science`: ODE solve end to end. `tpt-sci-ode` vendored at `vendor/tpt-sci-ode` without the cranelift JIT, which avoids the version issue. Upstream repo cannot be pinned by git: its `templates/` manifests are not valid TOML and break cargo. Raise upstream
 - [ ] `tpt-chemistry`, `tpt-fem`: confirm they build; decide MVP exposure (spec §10)
-- [ ] `tpt-appfront`: window, text editor widget, plot/canvas rendering
+- [~] `tpt-appfront`: pinned at GitHub master (6146526). The canvas backend builds on Windows and `research-app` opens a native window with a heading, status text and button. Not yet run interactively. Text editor and plot widgets not checked
 - [ ] `tpt-anima` (light subset): can it be used without model downloads?
-- [ ] `tpt-primitives`, `tpt-crypto`: identity / capability / evidence types
+- [~] `tpt-primitives` pinned at its GitHub master (55b4a2a); capability API used by research-agents and tested. `tpt-crypto` not yet checked
 - [x] Licence audit with `cargo deny`: licences, bans and sources pass for the current tree (incl. Keystone)
-- [~] Add each confirmed crate to `[workspace.dependencies]` with a pinned rev (done: `tpt-keystone`)
+- [~] Add each confirmed crate to `[workspace.dependencies]` with a pinned rev (done: `tpt-keystone`, `tpt-primitives`)
 
 ## 2. research-core
 - [x] `ProjectId`, `RunId`, `DocId`, `ResultId` types (validated `Id<T>` newtypes; generation not yet implemented)
@@ -49,17 +49,17 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Round-trip tests (JSON exact; document → notebook → document). Tables come back as text, by design
 
 ## 5. research-compute
-- [ ] Choose the cell language (Rhai, `tpt-mathr`, or other) via spike
-- [ ] Bind `tpt-math` units / linalg / probability / autodiff
-- [ ] Bind `tpt-science` ODE/DAE solvers
-- [ ] Cell execution with dependency graph and re-run of stale cells
-- [ ] Cancellation, timeouts, memory limit
-- [ ] Deterministic seeding for reproducibility
-- [ ] Output capture: text, tables, plots
-- [ ] Record every run into research-store
+- [x] Choose the cell language: Rhai (decision and reasons in `docs/ARCHITECTURE.md`; `tpt-mathr` is a numeric library, not a language)
+- [~] Bind `tpt-math` units / linalg / probability / autodiff: `solve` (linalg) and `normal` (probability) bound and tested. Units and autodiff not yet
+- [~] Bind `tpt-science` ODE solvers: `ode_solve` runs the four explicit and implicit methods from Rhai, tested (exponential decay, parameters, stiff problem, bad inputs). DAE, events and sensitivities not yet
+- [~] Cell execution and re-run of stale cells: cells run in order on a shared scope, a changed cell reruns with everything after it. A true dependency graph is not built
+- [x] Cancellation, timeouts, memory limit: cancel flag, wall-clock timeout, operation, string and collection limits. All tested
+- [x] Deterministic seeding for reproducibility: `uniform(index)` from the session seed, tested across sessions
+- [~] Output capture: text and errors captured. Tables and plots not yet (plots are blobs in research-store, so the path exists)
+- [x] Record every run into research-store: each cell that runs becomes a run, with its outputs and value as results
 
 ## 6. research-app (AppFront UI)
-- [ ] Main window, project open/create dialogs
+- [~] Main window: a spike window opens (heading, status, button). Project open/create dialogs not built
 - [ ] Project browser (documents, runs, data)
 - [ ] Document editor: cells, run buttons, inline results, narrative rendering
 - [ ] Plot viewer
@@ -79,11 +79,11 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Packing reads the whole project into memory. Streaming needed for large projects
 
 ## 8. research-agents (optional, light)
-- [ ] Capability model using `tpt-primitives` (deny by default)
+- [x] Capability model using `tpt-primitives` (deny by default): agent starts with no grants, stopped by default, every attempt logged. Lease and epoch bindings are denied until the app supplies them
 - [ ] Reproducibility check agent (re-run and compare)
 - [ ] Analysis suggestion helper
-- [ ] No large model download by default (spec §8)
-- [ ] Clear UI indicator when an agent is active; full action log
+- [x] No large model download by default (spec §8): nothing in the crate downloads anything
+- [~] Full action log: done (`Agent::log`). UI indicator: `Agent::is_running` exists; the indicator itself is §6
 
 ## 9. research-license + distribution (spec §7)
 - [~] Offline licence key file verification (no network, no telemetry): Ed25519 check against a supplied vendor key, tested. The vendor public key is not embedded yet, and the vendor signing tool is kept out of this repo

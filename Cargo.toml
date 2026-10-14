@@ -30,10 +30,21 @@ chacha20poly1305 = "0.10"
 argon2 = "0.5"
 getrandom = "0.3"
 base64 = "0.22"
+rhai = "1"
 
 # TPT-Solutions foundation crates (github.com/TPT-Solutions/*), pinned by rev.
 # Same rev as tpt-app-digital-twin. Added one at a time as each spike in TODO.md confirms it.
 tpt-keystone = { git = "https://github.com/TPT-Solutions/tpt-keystone-db", rev = "b861edd6f01e08061e0e1f3a86e6a2a1e1f2f449", version = "0.1.0", default-features = false }
+# Pinned to master on GitHub (the published commit, 2026-10-14). Local checkout is ahead of it.
+tpt-primitives = { git = "https://github.com/tpt-solutions/tpt-primitives", rev = "55b4a2abe1ae71dac8bd8769406545f11e7ad2e0", version = "0.1.0" }
+# tpt-math (github.com/tpt-solutions/tpt-math), pinned to its GitHub master.
+tpt-math-prob-dist = { git = "https://github.com/tpt-solutions/tpt-math", rev = "a16a8f5c63653cbfd8a95a0febdb22fce37af24f", version = "0.1.0" }
+# tpt-sci-ode, vendored from tpt-science (see vendor/tpt-sci-ode/VENDORED.md).
+tpt-sci-ode = { path = "vendor/tpt-sci-ode", version = "0.2.0" }
+# tpt-appfront (github.com/tpt-solutions/tpt-appfront), pinned to its GitHub master.
+tpt-appfront-core = { git = "https://github.com/tpt-solutions/tpt-appfront", rev = "61465269be731aaf4babf6cd3ec87ecf664d7397", version = "0.1.1" }
+tpt-appfront-canvas = { git = "https://github.com/tpt-solutions/tpt-appfront", rev = "61465269be731aaf4babf6cd3ec87ecf664d7397", version = "0.1.1" }
+tpt-math-linalg-dense = { git = "https://github.com/tpt-solutions/tpt-math", rev = "a16a8f5c63653cbfd8a95a0febdb22fce37af24f", version = "0.1.0" }
 
 # Internal crates
 research-core = { path = "crates/research-core", version = "0.1.0" }

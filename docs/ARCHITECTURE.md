@@ -79,3 +79,21 @@ Licence rule (spec §5): every dependency must be compatible with both MIT and A
   The UI shows when an agent is active, and every agent action is logged.
 - Cells run in a Rust-hosted language only; no shell or external process execution from
   notebook cells.
+
+## Cell language (decided)
+
+Code cells are written in **Rhai** (`rhai` 1.x, MIT OR Apache-2.0), embedded in `research-compute`.
+
+Why Rhai:
+
+- It is pure Rust and dual-licensed, so it meets spec §5 with no extra licence work.
+- It has no file, network or process access unless the host registers such functions. The engine registers only the research functions below.
+- It has built-in limits for operations, string and collection size, and call depth, which cover the sandboxing and memory limits the spec needs (TODO §5).
+- Cancellation and timeouts are a progress callback, so no OS thread is killed.
+
+Rejected:
+
+- `tpt-mathr` is a numeric library, not a language. It is used from Rhai as functions, not as the cell language itself.
+- Python or another external interpreter would break the Rust-hosted rule and the sandbox.
+
+Registered functions: `uniform(index)` returns a deterministic value in `[0, 1)` from the session seed, so runs reproduce. `tpt-math` and `tpt-science` bindings are added as more Rhai functions once those crates are pinned (TODO §1).

@@ -1,0 +1,25 @@
+[package]
+name = "tpt-sci-ode"
+description = "ODE/DAE solving for the tpt-science pillar (from-scratch, no diffsol). Vendored, closure-only build."
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+authors = ["TPT Solutions"]
+repository = "https://github.com/tpt-solutions/tpt-science"
+homepage = "https://github.com/tpt-solutions/tpt-science"
+readme = "README.md"
+keywords = ["ode", "dae", "diffeq", "science", "simulation"]
+categories = ["science", "simulation", "mathematics"]
+
+[lib]
+bench = false
+
+[dependencies]
+tpt-math-numeric = "0.1.0"
+thiserror = "2"
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+default = []
+serde = ["dep:serde"]

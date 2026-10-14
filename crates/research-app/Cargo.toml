@@ -9,3 +9,5 @@ publish.workspace = true
 
 [dependencies]
 research-core.workspace = true
+tpt-appfront-core = { workspace = true }
+tpt-appfront-canvas = { workspace = true }

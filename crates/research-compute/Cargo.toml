@@ -8,3 +8,16 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+rhai = { workspace = true }
+tpt-math-linalg-dense = { workspace = true }
+tpt-math-prob-dist = { workspace = true }
+tpt-sci-ode = { workspace = true }
+research-core = { workspace = true }
+research-doc = { workspace = true }
+research-store = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

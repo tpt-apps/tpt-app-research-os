@@ -1,0 +1,93 @@
+//! Host functions a cell can call, built on `tpt-math`.
+//!
+//! Every function here is deterministic. Random draws come from the session seed,
+//! so a document run twice with the same seed gives the same numbers. Use decimal
+//! literals (`2.0`, not `2`) for float arguments.
+
+use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, Position};
+use tpt_math_linalg_dense::{DMatrix, DVector};
+use tpt_math_prob_dist::{normal, Dist, Distribution, SplitMix64};
+
+use crate::engine::{splitmix64, uniform_at, Limits};
+use crate::ode::ode_solve;
+
+/// Register every binding on `engine`, for a session with `seed`.
+pub(crate) fn register(engine: &mut Engine, seed: u64, limits: Limits) {
+    engine.register_fn("uniform", move |index: i64| uniform_at(seed, index));
+
+    engine.register_fn(
+        "normal",
+        move |index: i64, mean: f64, sd: f64| -> Result<f64, Box<EvalAltResult>> {
+            let distribution = normal((mean, sd)).map_err(runtime_text)?;
+            // A separate stream from `uniform`, so the two never share draws.
+            let mut rng = SplitMix64::seed_from_u64(splitmix64(
+                seed ^ splitmix64(index as u64 ^ NORMAL_STREAM),
+            ));
+            Ok(Dist::new(distribution).sample(&mut rng))
+        },
+    );
+
+    engine.register_fn(
+        "ode_solve",
+        move |rhs: String,
+              params: Map,
+              y0: Array,
+              t0: f64,
+              t_eval: Array,
+              method: String|
+              -> Result<Array, Box<EvalAltResult>> {
+            ode_solve(rhs, params, y0, t0, t_eval, method, &limits)
+        },
+    );
+
+    engine.register_fn(
+        "solve",
+        |a: Array, b: Array| -> Result<Array, Box<EvalAltResult>> { solve(a, b) },
+    );
+}
+
+const NORMAL_STREAM: u64 = 0xA5A5_A5A5_5A5A_5A5A;
+
+/// Solve the square linear system `a * x = b` and return `x`.
+fn solve(a: Array, b: Array) -> Result<Array, Box<EvalAltResult>> {
+    let n = a.len();
+    let mut flat = Vec::with_capacity(n * n);
+    for row in a {
+        let row = row
+            .into_array()
+            .map_err(|_| runtime_text("a must be an array of rows"))?;
+        if row.len() != n {
+            return Err(runtime_text("a must be square"));
+        }
+        for cell in row {
+            flat.push(as_float(&cell).ok_or_else(|| runtime_text("a must hold numbers"))?);
+        }
+    }
+    let rhs = b
+        .iter()
+        .map(|v| as_float(v).ok_or_else(|| runtime_text("b must hold numbers")))
+        .collect::<Result<Vec<f64>, _>>()?;
+    if rhs.len() != n {
+        return Err(runtime_text("b must have one entry per row of a"));
+    }
+
+    let matrix = DMatrix::from_row_slice(n, n, &flat);
+    let x = matrix
+        .solve(&DVector::from_vec(rhs))
+        .map_err(|e| runtime_text(&e.to_string()))?;
+    Ok(x.as_slice().iter().map(|v| Dynamic::from(*v)).collect())
+}
+
+fn as_float(value: &Dynamic) -> Option<f64> {
+    value
+        .as_float()
+        .ok()
+        .or_else(|| value.as_int().ok().map(|i| i as f64))
+}
+
+fn runtime_text(message: &str) -> Box<EvalAltResult> {
+    Box::new(EvalAltResult::ErrorRuntime(
+        Dynamic::from(message.to_string()),
+        Position::NONE,
+    ))
+}

@@ -20,6 +20,12 @@ allow = [
     # redistribution; restricts only modified fonts, which we do not ship.
     # Review before v1.0 (TODO.md, Phase 8 licence items).
     "Ubuntu-font-1.0",
+    # Mozilla Public License 2.0, file-level copyleft: it binds only the MPL files
+    # themselves, not an MIT or Apache-2.0 product. Used by smartstring, which Rhai (the
+    # cell language, docs/ARCHITECTURE.md) always pulls in. Review before v1.0.
+    "MPL-2.0",
+    # Public-domain dedication. Used by tiny-keccak, via ahash in Rhai. Review before v1.0.
+    "CC0-1.0",
 ]
 confidence-threshold = 0.9
 
@@ -34,6 +40,9 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = [
     "https://github.com/TPT-Solutions/tpt-vertex",
     "https://github.com/TPT-Solutions/tpt-keystone-db",
+    "https://github.com/tpt-solutions/tpt-primitives",
+    "https://github.com/tpt-solutions/tpt-math",
+    "https://github.com/tpt-solutions/tpt-appfront",
     "https://github.com/TPT-Solutions/tpt-appfront",
     "https://github.com/TPT-Solutions/tpt-engineering",
     "https://github.com/TPT-Solutions/tpt-science",
