@@ -39,7 +39,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Result storage: scalars, arrays, tables, text, and blobs (plots and binary data, content-addressed, hash re-checked on read)
 - [~] Query API: list, filter, runs-by-input. Compare view waits for the UI (§6)
 - [x] Schema versioning and migrations: v2 adds documents; v1 stores upgrade on open (tested). Future bumps add a match arm in `apply_migration`
-- [~] Crash-safety and concurrent-open tests: concurrent open refused, manifest and blob writes atomic, reopen survives. No kill-the-process test yet
+- [x] Crash-safety and concurrent-open tests: concurrent open refused, manifest and blob writes atomic, reopen survives, and a child process that aborts mid-write leaves a project that reopens with every completed run (`tests/crash.rs`)
 
 ## 4. research-doc (computational documents)
 - [x] Format spec in `docs/DOCUMENT_FORMAT.md`: cells (code, markdown, output), metadata, stable cell ids
