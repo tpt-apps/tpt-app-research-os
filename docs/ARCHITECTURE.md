@@ -1,20 +1,20 @@
 # Architecture
 
-Status: scaffold. Crate boundaries are set; most crates are still empty stubs.
+Status: the core crates and the editor window are built. Open work is in TODO.md.
 Section numbers refer to [spec.txt](../spec.txt); open work is tracked in [TODO.md](../TODO.md).
 
 ## Crate map
 
-| Crate | Responsibility | Depends on (planned) | State |
-|-------|----------------|----------------------|-------|
-| `research-core` | Typed ids, unified error, project manifest schema | serde, serde_json, thiserror | Types and tests in place |
-| `research-store` | Project directory and Keystone database; run and result tracking | research-core, tpt-keystone-db | Stub |
-| `research-doc` | Computational document format; `.ipynb` import/export | research-core | Stub |
-| `research-compute` | Cell execution, dependency graph, output capture | research-core, research-store, research-doc, tpt-math, tpt-science | Stub |
-| `research-package` | Zip packages: manifest, DB snapshot, documents, data; signing; encryption | research-core, research-store | Stub |
-| `research-agents` | Optional, capability-restricted helpers | research-core, tpt-primitives | Stub |
-| `research-license` | Offline licence key verification | research-core, tpt-crypto | Stub |
-| `research-app` | AppFront native shell and UI | all of the above, tpt-appfront | Stub (`main.rs`) |
+| Crate | Responsibility | Main dependencies | State |
+|-------|----------------|-------------------|-------|
+| `research-core` | Typed ids, unified error, project manifest | serde, thiserror | Built, tested |
+| `research-store` | Projects, runs, results, documents, blobs; schema v2 | research-core, research-doc, tpt-keystone | Built, tested; kill-mid-write test |
+| `research-doc` | Document model, deterministic JSON, `.ipynb` import and export | research-core | Built, tested |
+| `research-compute` | Rhai cells, sandbox, numeric bindings (`normal`, `solve`, `ode_solve`, units, `show_table`) | rhai, tpt-math crates, vendored tpt-sci-ode | Built, tested |
+| `research-package` | Signed, optionally encrypted packages | ed25519-dalek, zip, argon2, chacha20poly1305 | Built, tested |
+| `research-agents` | Capability-restricted agent; reproducibility check | tpt-primitives, research-compute | Built, tested |
+| `research-license` | Offline licence key verification | ed25519-dalek, base64 | Built, tested; vendor key not embedded |
+| `research-app` | Workspace model, editor view, window | tpt-appfront-canvas | Built; window not verified interactively |
 
 Dependency direction is one-way: `research-app` sits on top; `research-core` sits at the bottom
 and depends on no other research crate. Nothing below `research-app` may depend on the UI.
