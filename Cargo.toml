@@ -45,6 +45,7 @@ tpt-sci-ode = { path = "vendor/tpt-sci-ode", version = "0.2.0" }
 tpt-appfront-core = { git = "https://github.com/tpt-solutions/tpt-appfront", rev = "61465269be731aaf4babf6cd3ec87ecf664d7397", version = "0.1.1" }
 tpt-appfront-canvas = { git = "https://github.com/tpt-solutions/tpt-appfront", rev = "61465269be731aaf4babf6cd3ec87ecf664d7397", version = "0.1.1" }
 tpt-math-linalg-dense = { git = "https://github.com/tpt-solutions/tpt-math", rev = "a16a8f5c63653cbfd8a95a0febdb22fce37af24f", version = "0.1.0" }
+tpt-math-units-dyn = { git = "https://github.com/tpt-solutions/tpt-math", rev = "a16a8f5c63653cbfd8a95a0febdb22fce37af24f", version = "0.1.0" }
 
 # Internal crates
 research-core = { path = "crates/research-core", version = "0.1.0" }

@@ -115,6 +115,7 @@ pub(crate) fn build(
     });
 
     crate::bindings::register(&mut engine, seed, limits.clone(), sinks.tables.clone());
+    crate::units::register(&mut engine);
 
     let print_sink = sinks.prints.clone();
     engine.on_print(move |text| print_sink.borrow_mut().push(text.to_string()));

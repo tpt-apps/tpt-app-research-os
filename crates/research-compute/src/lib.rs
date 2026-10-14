@@ -8,6 +8,7 @@ mod engine;
 mod error;
 mod ode;
 mod session;
+mod units;
 
 pub use engine::{Control, Limits, LANGUAGE};
 pub use error::{ComputeError, Result};

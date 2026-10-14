@@ -11,6 +11,7 @@ publish.workspace = true
 rhai = { workspace = true }
 tpt-math-linalg-dense = { workspace = true }
 tpt-math-prob-dist = { workspace = true }
+tpt-math-units-dyn = { workspace = true }
 tpt-sci-ode = { workspace = true }
 research-core = { workspace = true }
 research-doc = { workspace = true }

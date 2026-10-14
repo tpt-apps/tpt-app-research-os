@@ -18,7 +18,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 
 ## 1. Foundation-crate spikes (confirm names, APIs, licences — spec §5)
 - [~] `tpt-keystone-db`: open a local DB, store/query a record ✓ (builds on Windows; used by research-store), vector search not yet tried. Gotchas: `key` is a reserved word in its SQL; its lease has no release API and does not block a second handle with the same holder id, so research-store takes an OS file lock instead.
-- [~] `tpt-math` pinned at GitHub master (a16a8f5): `linalg-dense` (solve) and `prob-dist` (normal) build and are bound in research-compute. Units, autodiff, arbitrary precision and `tpt-mathr` not yet checked
+- [~] `tpt-math` pinned at GitHub master (a16a8f5): `linalg-dense` (solve), `prob-dist` (normal) and `units-dyn` (dimension-checked quantities) build and are bound in research-compute. Autodiff, arbitrary precision and `tpt-mathr` not yet checked
 - [x] `tpt-science`: ODE solve end to end. `tpt-sci-ode` vendored at `vendor/tpt-sci-ode` without the cranelift JIT, which avoids the version issue. Upstream repo cannot be pinned by git: its `templates/` manifests are not valid TOML and break cargo. Raise upstream
 - [ ] `tpt-chemistry`, `tpt-fem`: confirm they build; decide MVP exposure (spec §10)
 - [~] `tpt-appfront`: pinned at GitHub master (6146526). The canvas backend builds on Windows and `research-app` opens a native window with a heading, status text and button. Not yet run interactively. Text editor and plot widgets not checked
@@ -50,7 +50,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 
 ## 5. research-compute
 - [x] Choose the cell language: Rhai (decision and reasons in `docs/ARCHITECTURE.md`; `tpt-mathr` is a numeric library, not a language)
-- [~] Bind `tpt-math` units / linalg / probability / autodiff: `solve` (linalg) and `normal` (probability) bound and tested. Units and autodiff not yet
+- [~] Bind `tpt-math` units / linalg / probability / autodiff: units (`qty`, `qty_in`, dimension-checked `+ - * /`), `solve` (linalg) and `normal` (probability) bound and tested. Autodiff not yet
 - [~] Bind `tpt-science` ODE solvers: `ode_solve` runs the four explicit and implicit methods from Rhai, tested (exponential decay, parameters, stiff problem, bad inputs). DAE, events and sensitivities not yet
 - [~] Cell execution and re-run of stale cells: cells run in order on a shared scope, a changed cell reruns with everything after it. A true dependency graph is not built
 - [x] Cancellation, timeouts, memory limit: cancel flag, wall-clock timeout, operation, string and collection limits. All tested
