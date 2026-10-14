@@ -90,7 +90,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Open-source build works with no licence file: `Status::NotProvided` is not an error (app wiring in §6)
 - [ ] Release builds for Windows, macOS, Linux
 - [ ] Code signing and installers (needs certificates)
-- [ ] Bundle example research projects
+- [~] Bundle example research projects: `cargo run -p research-app --example demo_project -- <dir>` builds a project with an ODE, a units cell, sampling and a linear solve, all run. Not yet packaged into the release zip
 - [ ] Quick-start guide (PDF)
 - [ ] Finalize [GUMROAD.md](GUMROAD.md) listing and publish
 - [ ] Error-report submission process for buyers
