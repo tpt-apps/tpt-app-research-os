@@ -61,7 +61,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 ## 6. research-app (AppFront UI)
 - [~] Main window: a spike window opens (heading, status, button). Project open/create dialogs not built
 - [ ] Project browser (documents, runs, data)
-- [ ] Document editor: cells, run buttons, inline results, narrative rendering
+- [~] Document editor: the model is done (`research-app` `Workspace`: create/open project, documents, run with recording, reopen). Cells, run buttons, inline results and narrative rendering in the window are not built yet
 - [ ] Plot viewer
 - [ ] Experiment/run comparison view
 - [ ] Settings (agents on/off, paths)

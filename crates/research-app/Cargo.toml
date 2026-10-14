@@ -11,3 +11,10 @@ publish.workspace = true
 research-core.workspace = true
 tpt-appfront-core = { workspace = true }
 tpt-appfront-canvas = { workspace = true }
+research-compute = { workspace = true }
+research-doc = { workspace = true }
+research-store = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"
