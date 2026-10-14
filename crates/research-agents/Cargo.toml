@@ -9,3 +9,6 @@ publish.workspace = true
 
 [dependencies]
 tpt-primitives = { workspace = true }
+research-compute = { workspace = true }
+research-core = { workspace = true }
+research-doc = { workspace = true }

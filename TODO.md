@@ -80,7 +80,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 
 ## 8. research-agents (optional, light)
 - [x] Capability model using `tpt-primitives` (deny by default): agent starts with no grants, stopped by default, every attempt logged. Lease and epoch bindings are denied until the app supplies them
-- [ ] Reproducibility check agent (re-run and compare)
+- [x] Reproducibility check (re-run and compare): `research_agents::check_document` reruns a copy from scratch with the same seed and reports per-cell matches, differences and never-run cells. `check_with_agent` requires a `document:<id>` `rerun` grant. Checks documents, not runs across machines; no UI wiring yet
 - [ ] Analysis suggestion helper
 - [x] No large model download by default (spec §8): nothing in the crate downloads anything
 - [~] Full action log: done (`Agent::log`). UI indicator: `Agent::is_running` exists; the indicator itself is §6
