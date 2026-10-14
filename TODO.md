@@ -102,7 +102,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Reproducibility test: same project, two machines, identical results
 - [ ] Performance check on a mid-range laptop
 - [ ] Security review of package import and agent sandbox
-- [ ] README, CONTRIBUTING, SECURITY docs
+- [x] README, CONTRIBUTING, SECURITY docs. CI now runs `cargo deny check bans licenses sources`
 
 ## 11. Later (no commitment, spec §4)
 - [ ] Deeper chemistry and FEM integration
