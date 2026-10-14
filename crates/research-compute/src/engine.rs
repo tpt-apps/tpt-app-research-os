@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use research_doc::Output;
 use rhai::{Dynamic, Engine};
 
 use crate::error::{ComputeError, Result};
@@ -80,13 +81,20 @@ impl Control {
     }
 }
 
-/// Build an engine for one cell. `prints` receives everything the cell prints.
+/// What a cell produces while it runs: printed lines and tables.
+#[derive(Clone, Default)]
+pub(crate) struct Sinks {
+    pub prints: Rc<RefCell<Vec<String>>>,
+    pub tables: Rc<RefCell<Vec<Output>>>,
+}
+
+/// Build an engine for one cell. `sinks` receives what the cell prints and shows.
 pub(crate) fn build(
     limits: &Limits,
     control: &Control,
     deadline: Instant,
     seed: u64,
-    prints: Rc<RefCell<Vec<String>>>,
+    sinks: Sinks,
 ) -> Engine {
     let mut engine = Engine::new();
     engine.set_max_operations(limits.max_operations);
@@ -106,11 +114,12 @@ pub(crate) fn build(
         }
     });
 
-    crate::bindings::register(&mut engine, seed, limits.clone());
+    crate::bindings::register(&mut engine, seed, limits.clone(), sinks.tables.clone());
 
-    let print_sink = prints.clone();
+    let print_sink = sinks.prints.clone();
     engine.on_print(move |text| print_sink.borrow_mut().push(text.to_string()));
-    engine.on_debug(move |text, _source, _position| prints.borrow_mut().push(text.to_string()));
+    engine
+        .on_debug(move |text, _source, _position| sinks.prints.borrow_mut().push(text.to_string()));
 
     engine
 }

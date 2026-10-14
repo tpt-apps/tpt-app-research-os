@@ -323,6 +323,39 @@ mod tests {
     }
 
     #[test]
+    fn show_table_produces_a_table_output_after_printed_text() {
+        let mut doc = document(vec![code(
+            "t",
+            "print(\"header\"); show_table([\"t\", \"x\"], [[0.0, 1.0], [1.0, 0.5]])",
+        )]);
+        run(&mut session(1), &mut doc);
+        assert_eq!(
+            outputs_of(&doc, "t"),
+            vec![
+                text("header"),
+                Output::Table {
+                    columns: vec!["t".into(), "x".into()],
+                    rows: vec![
+                        vec!["0.0".into(), "1.0".into()],
+                        vec!["1.0".into(), "0.5".into()],
+                    ],
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn show_table_refuses_ragged_rows_and_empty_columns() {
+        let mut doc = document(vec![
+            code("ragged", "show_table([\"a\", \"b\"], [[1.0]])"),
+            code("empty", "show_table([], [])"),
+        ]);
+        run(&mut session(1), &mut doc);
+        assert_eq!(error_name(&doc, "ragged"), "RuntimeError");
+        assert_eq!(error_name(&doc, "empty"), "RuntimeError");
+    }
+
+    #[test]
     fn ode_solve_reports_bad_inputs_as_cell_errors() {
         let mut doc = document(vec![
             code(

@@ -4,6 +4,10 @@
 //! so a document run twice with the same seed gives the same numbers. Use decimal
 //! literals (`2.0`, not `2`) for float arguments.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use research_doc::Output;
 use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, Position};
 use tpt_math_linalg_dense::{DMatrix, DVector};
 use tpt_math_prob_dist::{normal, Dist, Distribution, SplitMix64};
@@ -12,7 +16,12 @@ use crate::engine::{splitmix64, uniform_at, Limits};
 use crate::ode::ode_solve;
 
 /// Register every binding on `engine`, for a session with `seed`.
-pub(crate) fn register(engine: &mut Engine, seed: u64, limits: Limits) {
+pub(crate) fn register(
+    engine: &mut Engine,
+    seed: u64,
+    limits: Limits,
+    tables: Rc<RefCell<Vec<Output>>>,
+) {
     engine.register_fn("uniform", move |index: i64| uniform_at(seed, index));
 
     engine.register_fn(
@@ -37,6 +46,31 @@ pub(crate) fn register(engine: &mut Engine, seed: u64, limits: Limits) {
               method: String|
               -> Result<Array, Box<EvalAltResult>> {
             ode_solve(rhs, params, y0, t0, t_eval, method, &limits)
+        },
+    );
+
+    engine.register_fn(
+        "show_table",
+        move |columns: Array, rows: Array| -> Result<(), Box<EvalAltResult>> {
+            let columns: Vec<String> = columns.iter().map(|c| c.to_string()).collect();
+            if columns.is_empty() {
+                return Err(runtime_text("a table needs at least one column"));
+            }
+            let mut body = Vec::with_capacity(rows.len());
+            for row in rows {
+                let row = row
+                    .into_array()
+                    .map_err(|_| runtime_text("each table row must be an array"))?;
+                if row.len() != columns.len() {
+                    return Err(runtime_text("a table row does not match the column count"));
+                }
+                body.push(row.iter().map(|v| v.to_string()).collect());
+            }
+            tables.borrow_mut().push(Output::Table {
+                columns,
+                rows: body,
+            });
+            Ok(())
         },
     );
 

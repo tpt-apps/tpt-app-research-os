@@ -4,9 +4,7 @@
 //! earlier cell re-ran, because its variables may have changed. Other cells keep
 //! their stored outputs.
 
-use std::cell::RefCell;
 use std::collections::BTreeMap;
-use std::rc::Rc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use research_core::{CellId, ResultId, RunId};
@@ -15,7 +13,7 @@ use research_store::{ProjectStore, Run, StoredResult, Value};
 use rhai::{Dynamic, EvalAltResult, Scope};
 use sha2::{Digest, Sha256};
 
-use crate::engine::{self, Control, Limits, LANGUAGE};
+use crate::engine::{self, Control, Limits, Sinks, LANGUAGE};
 use crate::error::Result;
 
 /// What one call to [`Session::run_document`] did.
@@ -133,16 +131,17 @@ impl Session {
     }
 
     fn run_source(&mut self, source: &str, control: &Control) -> CellOutcome {
-        let prints = Rc::new(RefCell::new(Vec::new()));
+        let sinks = Sinks::default();
         let deadline = Instant::now() + self.limits.timeout;
-        let engine = engine::build(&self.limits, control, deadline, self.seed, prints.clone());
+        let engine = engine::build(&self.limits, control, deadline, self.seed, sinks.clone());
 
         let result = engine.eval_with_scope::<Dynamic>(&mut self.scope, source);
         let mut outputs = Vec::new();
-        let printed = prints.borrow().concat();
+        let printed = sinks.prints.borrow().concat();
         if !printed.is_empty() {
             outputs.push(Output::Text { text: printed });
         }
+        outputs.extend(sinks.tables.borrow().iter().cloned());
 
         match result {
             Ok(value) => {
