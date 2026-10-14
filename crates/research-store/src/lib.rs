@@ -12,7 +12,7 @@ pub use blobs::MAX_BLOB_BYTES;
 pub use documents::DocumentSummary;
 pub use error::{Result, StoreError};
 pub use project::{ProjectStore, SCHEMA_VERSION};
-pub use tracking::{Run, StoredResult, Value};
+pub use tracking::{Run, RunComparison, StoredResult, Value};
 
 /// Crate name, used by smoke tests.
 pub const NAME: &str = "research-store";

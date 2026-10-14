@@ -143,6 +143,18 @@ impl StoredResult {
     }
 }
 
+/// Runs side by side, from [`ProjectStore::compare_runs`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunComparison {
+    /// The runs, in the order asked for.
+    pub runs: Vec<Run>,
+    /// Input names whose value is not the same in every run (a missing input counts).
+    pub differing_inputs: Vec<String>,
+    /// For each result name, one entry per run: `None` where that run has no result
+    /// of that name. Names are in alphabetical order.
+    pub results: Vec<(String, Vec<Option<Value>>)>,
+}
+
 impl ProjectStore {
     /// Insert or replace a run.
     pub fn save_run(&self, run: &Run) -> Result<()> {
@@ -174,6 +186,64 @@ impl ProjectStore {
     /// Runs for which `keep` returns true, oldest first.
     pub fn filter_runs(&self, keep: impl Fn(&Run) -> bool) -> Result<Vec<Run>> {
         Ok(self.list_runs()?.into_iter().filter(|r| keep(r)).collect())
+    }
+
+    /// Compare runs side by side: each run's inputs, the input names whose values
+    /// differ between them, and each named result per run. Results are looked up by
+    /// name, so a result missing from one run shows as `None` in that column.
+    pub fn compare_runs(&self, ids: &[RunId]) -> Result<RunComparison> {
+        let mut runs = Vec::with_capacity(ids.len());
+        for id in ids {
+            let run = self
+                .load_run(id)?
+                .ok_or_else(|| StoreError::RunNotFound(id.to_string()))?;
+            runs.push(run);
+        }
+
+        let mut keys: Vec<String> = runs.iter().flat_map(|r| r.inputs.keys().cloned()).collect();
+        keys.sort();
+        keys.dedup();
+        let differing_inputs = keys
+            .into_iter()
+            .filter(|key| {
+                let first = runs.first().and_then(|r| r.inputs.get(key));
+                runs.iter().any(|r| r.inputs.get(key) != first)
+            })
+            .collect();
+
+        let mut result_names: Vec<String> = Vec::new();
+        let mut per_run = Vec::with_capacity(runs.len());
+        for run in &runs {
+            let results = self.results_for_run(&run.id)?;
+            for result in &results {
+                if !result_names.contains(&result.name) {
+                    result_names.push(result.name.clone());
+                }
+            }
+            per_run.push(results);
+        }
+        result_names.sort();
+        let results = result_names
+            .into_iter()
+            .map(|name| {
+                let values = per_run
+                    .iter()
+                    .map(|results| {
+                        results
+                            .iter()
+                            .find(|r| r.name == name)
+                            .map(|r| r.value.clone())
+                    })
+                    .collect();
+                (name, values)
+            })
+            .collect();
+
+        Ok(RunComparison {
+            runs,
+            differing_inputs,
+            results,
+        })
     }
 
     /// Runs that were given `key` as an input with exactly `value`.
@@ -534,5 +604,66 @@ mod tests {
             },
         );
         assert!(project.save_result(&bad_hash).is_err());
+    }
+
+    #[test]
+    fn comparison_shows_differing_inputs_and_per_run_results() {
+        let (_dir, project) = open_temp();
+        let mut a = run("a", 1);
+        a.inputs.insert("k".into(), "2.5".into());
+        let mut b = run("b", 2);
+        b.inputs.insert("k".into(), "9".into());
+        // Both runs share "seed"; "mode" is only on "b", so it differs too.
+        a.inputs.insert("seed".into(), "7".into());
+        b.inputs.insert("seed".into(), "7".into());
+        b.inputs.insert("mode".into(), "fast".into());
+        project.save_run(&a).unwrap();
+        project.save_run(&b).unwrap();
+        project
+            .save_result(&result("ra", "a", "energy", Value::Scalar { value: 1.0 }))
+            .unwrap();
+        project
+            .save_result(&result("rb", "b", "energy", Value::Scalar { value: 2.0 }))
+            .unwrap();
+        project
+            .save_result(&result(
+                "rb2",
+                "b",
+                "trace",
+                Value::Text { text: "ok".into() },
+            ))
+            .unwrap();
+
+        let ids = [RunId::new("a").unwrap(), RunId::new("b").unwrap()];
+        let cmp = project.compare_runs(&ids).unwrap();
+        assert_eq!(cmp.runs.len(), 2);
+        assert_eq!(cmp.differing_inputs, ["k", "mode"]);
+        assert_eq!(
+            cmp.results,
+            vec![
+                (
+                    "energy".to_string(),
+                    vec![
+                        Some(Value::Scalar { value: 1.0 }),
+                        Some(Value::Scalar { value: 2.0 })
+                    ]
+                ),
+                (
+                    "trace".to_string(),
+                    vec![None, Some(Value::Text { text: "ok".into() })]
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn comparing_an_unknown_run_is_an_error() {
+        let (_dir, project) = open_temp();
+        project.save_run(&run("a", 1)).unwrap();
+        let ids = [RunId::new("a").unwrap(), RunId::new("nope").unwrap()];
+        assert!(matches!(
+            project.compare_runs(&ids),
+            Err(StoreError::RunNotFound(id)) if id == "nope"
+        ));
     }
 }

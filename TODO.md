@@ -37,7 +37,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Open / create / close a project directory (close = drop; OS lock released with it)
 - [x] Experiment tracking: run record with inputs, code hash, environment, timings
 - [x] Result storage: scalars, arrays, tables, text, and blobs (plots and binary data, content-addressed, hash re-checked on read)
-- [~] Query API: list, filter, runs-by-input. Compare view waits for the UI (§6)
+- [x] Query API: list, filter, runs-by-input, and `compare_runs` (inputs that differ, results per run). The comparison window waits for the UI (§6)
 - [x] Schema versioning and migrations: v2 adds documents; v1 stores upgrade on open (tested). Future bumps add a match arm in `apply_migration`
 - [x] Crash-safety and concurrent-open tests: concurrent open refused, manifest and blob writes atomic, reopen survives, and a child process that aborts mid-write leaves a project that reopens with every completed run (`tests/crash.rs`)
 
