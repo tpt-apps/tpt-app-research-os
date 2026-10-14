@@ -32,6 +32,23 @@ confidence-threshold = 0.9
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Offline requirement (spec §6): no HTTP client may enter the graph. Keystone itself
+# links tokio, rustls and mio (its server code); that is allowed, and runtime
+# behaviour is checked separately (TODO §10).
+deny = [
+    { name = "reqwest" },
+    { name = "ureq" },
+    { name = "isahc" },
+    { name = "surf" },
+    { name = "attohttpc" },
+    { name = "curl" },
+    { name = "minreq" },
+    { name = "ehttp" },
+    # No telemetry (spec §6). Keystone has an optional OTLP exporter, off here.
+    { name = "opentelemetry" },
+    { name = "opentelemetry_sdk" },
+    { name = "sentry" },
+]
 
 [sources]
 unknown-registry = "deny"
