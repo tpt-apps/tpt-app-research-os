@@ -37,7 +37,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Open / create / close a project directory (close = drop; OS lock released with it)
 - [x] Experiment tracking: run record with inputs, code hash, environment, timings
 - [x] Result storage: scalars, arrays, tables, text, and blobs (plots and binary data, content-addressed, hash re-checked on read)
-- [x] Query API: list, filter, runs-by-input, and `compare_runs` (inputs that differ, results per run). The comparison window waits for the UI (§6)
+- [x] Query API: list, filter, runs-by-input, and `compare_runs` (inputs that differ, results per run). The comparison window is in §6
 - [x] Schema versioning and migrations: v2 adds documents; v1 stores upgrade on open (tested). Future bumps add a match arm in `apply_migration`
 - [x] Crash-safety and concurrent-open tests: concurrent open refused, manifest and blob writes atomic, reopen survives, and a child process that aborts mid-write leaves a project that reopens with every completed run (`tests/crash.rs`)
 
@@ -63,7 +63,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Project browser (documents, runs, data)
 - [~] Document editor: documents list, open/new, cell source edits, add code and text cells, run, save, and outputs shown as text. Headless logic tested (`editor.rs`, `view.rs`). Narrative rendering of text cells is plain text; no inline plots or tables yet
 - [ ] Plot viewer
-- [ ] Experiment/run comparison view
+- [~] Experiment/run comparison view: tick runs in the side list, compare them side by side (differing inputs, results per run, missing results shown as —). Headless logic tested (`compare.rs`, `view.rs`). Not yet checked in the window; plot results not shown
 - [ ] Settings (agents on/off, paths)
 - [ ] Keyboard shortcuts, light/dark theme
 - [ ] Decide MVP exposure of library surface vs library-only (spec §10)

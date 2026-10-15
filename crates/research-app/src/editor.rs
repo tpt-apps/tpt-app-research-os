@@ -4,9 +4,9 @@
 use std::fmt;
 
 use research_compute::{Control, RunSummary, LANGUAGE};
-use research_core::CellId;
+use research_core::{CellId, RunId};
 use research_doc::{Cell, CellBody, Document};
-use research_store::DocumentSummary;
+use research_store::{DocumentSummary, Run, RunComparison};
 
 use crate::workspace::{Workspace, WorkspaceError};
 
@@ -28,6 +28,8 @@ pub enum EditorError {
     DocumentMissing(String),
     /// The cell index is past the end of the document.
     NoSuchCell(usize),
+    /// Comparing needs at least two selected runs.
+    NotEnoughRuns,
 }
 
 impl fmt::Display for EditorError {
@@ -37,6 +39,7 @@ impl fmt::Display for EditorError {
             Self::NoDocumentOpen => write!(f, "open a document first"),
             Self::DocumentMissing(id) => write!(f, "no document called {id}"),
             Self::NoSuchCell(i) => write!(f, "there is no cell {i}"),
+            Self::NotEnoughRuns => write!(f, "select at least two runs to compare"),
         }
     }
 }
@@ -56,6 +59,9 @@ pub struct Editor {
     workspace: Workspace,
     document: Option<Document>,
     status: String,
+    /// Runs ticked for comparison, in the order they were ticked.
+    selected_runs: Vec<RunId>,
+    comparison: Option<RunComparison>,
 }
 
 impl Editor {
@@ -64,6 +70,8 @@ impl Editor {
             workspace,
             document: None,
             status: "Open or create a document to start.".into(),
+            selected_runs: Vec::new(),
+            comparison: None,
         }
     }
 
@@ -134,6 +142,51 @@ impl Editor {
         };
         doc.cells.push(Cell { id, body });
         Ok(doc.cells.len() - 1)
+    }
+
+    /// Every recorded run, oldest first, for the runs list.
+    pub fn runs(&self) -> Result<Vec<Run>> {
+        Ok(self.workspace.runs()?)
+    }
+
+    pub fn selected_runs(&self) -> &[RunId] {
+        &self.selected_runs
+    }
+
+    /// The last comparison made, if it is still current.
+    pub fn comparison(&self) -> Option<&RunComparison> {
+        self.comparison.as_ref()
+    }
+
+    /// Tick or untick run `id` for comparison. Changing the selection drops the old
+    /// comparison, since it no longer matches what is ticked.
+    pub fn toggle_run(&mut self, id: &str) -> Result<()> {
+        let id = RunId::new(id).map_err(|e| EditorError::Workspace(e.into()))?;
+        match self.selected_runs.iter().position(|r| r == &id) {
+            Some(i) => {
+                self.selected_runs.remove(i);
+            }
+            None => self.selected_runs.push(id),
+        }
+        self.comparison = None;
+        Ok(())
+    }
+
+    /// Compare the ticked runs side by side and show the result.
+    pub fn compare_selected(&mut self) -> Result<()> {
+        if self.selected_runs.len() < 2 {
+            return Err(EditorError::NotEnoughRuns);
+        }
+        let cmp = self.workspace.compare_runs(&self.selected_runs)?;
+        self.status = format!("Compared {} runs.", cmp.runs.len());
+        self.comparison = Some(cmp);
+        Ok(())
+    }
+
+    /// Close the comparison and untick every run.
+    pub fn clear_comparison(&mut self) {
+        self.selected_runs.clear();
+        self.comparison = None;
     }
 
     /// Replace the status line, for errors the window needs to show.

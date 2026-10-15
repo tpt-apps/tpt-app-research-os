@@ -4,6 +4,7 @@
 use research_doc::{CellBody, Output};
 use tpt_appfront_core::UITree;
 
+use crate::compare::compare_lines;
 use crate::editor::{CellKind, Editor};
 
 /// What the window can ask the editor to do.
@@ -16,6 +17,9 @@ pub enum Msg {
     AddMarkdown,
     Run,
     Save,
+    ToggleRun(String),
+    CompareRuns,
+    ClearComparison,
 }
 
 /// The whole window: documents on the left, the open document on the right.
@@ -30,7 +34,32 @@ pub fn view(editor: &Editor) -> UITree<Msg> {
                     .on_click(Msg::Open(doc.id.to_string()));
             }
             side.button("New document").on_click(Msg::New);
+            side.heading(3, "Runs".to_string());
+            let selected = editor.selected_runs();
+            for run in editor.runs().unwrap_or_default() {
+                let mark = if selected.contains(&run.id) {
+                    "[x]"
+                } else {
+                    "[ ]"
+                };
+                side.button(format!("{mark} {}", run.label))
+                    .on_click(Msg::ToggleRun(run.id.to_string()));
+            }
+            side.button(format!("Compare {} selected", selected.len()))
+                .on_click(Msg::CompareRuns);
+            if editor.comparison().is_some() {
+                side.button("Clear comparison")
+                    .on_click(Msg::ClearComparison);
+            }
         });
+        if let Some(cmp) = editor.comparison() {
+            c.container(|cmp_view| {
+                cmp_view.heading(2, "Run comparison".to_string());
+                for line in compare_lines(cmp) {
+                    cmp_view.text(line);
+                }
+            });
+        }
         c.container(|main| match editor.document() {
             None => {
                 main.text("No document open.".to_string());
@@ -71,6 +100,12 @@ pub fn apply(editor: &mut Editor, msg: Msg) {
         Msg::AddMarkdown => editor.add_cell(CellKind::Markdown).map(|_| ()),
         Msg::Run => editor.run().map(|_| ()),
         Msg::Save => editor.save(),
+        Msg::ToggleRun(id) => editor.toggle_run(&id),
+        Msg::CompareRuns => editor.compare_selected(),
+        Msg::ClearComparison => {
+            editor.clear_comparison();
+            Ok(())
+        }
     };
     if let Err(error) = result {
         editor.set_status(error.to_string());
@@ -122,6 +157,47 @@ mod tests {
         assert_eq!(ed.status(), "no document called missing");
         apply(&mut ed, Msg::EditSource(4, "x".into()));
         assert!(ed.status().contains("no document") || ed.status().contains("open a document"));
+    }
+
+    #[test]
+    fn runs_are_ticked_and_compared_from_the_window() {
+        let (_work, mut ed) = editor();
+        apply(&mut ed, Msg::New);
+        apply(&mut ed, Msg::AddCode);
+        apply(&mut ed, Msg::EditSource(0, "2 * 2".into()));
+        apply(&mut ed, Msg::Run);
+        apply(&mut ed, Msg::EditSource(0, "3 * 3".into()));
+        apply(&mut ed, Msg::Run);
+
+        let ids: Vec<String> = ed
+            .runs()
+            .unwrap()
+            .iter()
+            .map(|r| r.id.to_string())
+            .collect();
+        assert_eq!(ids.len(), 2);
+        apply(&mut ed, Msg::CompareRuns);
+        assert!(
+            ed.status().contains("select at least two"),
+            "{}",
+            ed.status()
+        );
+
+        for id in &ids {
+            apply(&mut ed, Msg::ToggleRun(id.clone()));
+        }
+        apply(&mut ed, Msg::CompareRuns);
+        let cmp = ed.comparison().expect("comparison shown");
+        assert_eq!(cmp.runs.len(), 2);
+        let _ = view(&ed);
+
+        apply(&mut ed, Msg::ToggleRun(ids[0].clone()));
+        assert!(
+            ed.comparison().is_none(),
+            "changing the selection drops the comparison"
+        );
+        apply(&mut ed, Msg::ClearComparison);
+        assert!(ed.selected_runs().is_empty());
     }
 
     #[test]

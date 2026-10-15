@@ -4,9 +4,9 @@
 use std::path::Path;
 
 use research_compute::{Control, Limits, RunSummary, Session};
-use research_core::{DocId, ProjectId, ProjectManifest};
+use research_core::{DocId, ProjectId, ProjectManifest, RunId};
 use research_doc::Document;
-use research_store::{DocumentSummary, ProjectStore, Run};
+use research_store::{DocumentSummary, ProjectStore, Run, RunComparison};
 
 /// Errors from workspace operations.
 #[derive(Debug, thiserror::Error)]
@@ -94,6 +94,11 @@ impl Workspace {
     /// Every recorded run, oldest first.
     pub fn runs(&self) -> Result<Vec<Run>> {
         Ok(self.store.list_runs()?)
+    }
+
+    /// Runs side by side, in the order given.
+    pub fn compare_runs(&self, ids: &[RunId]) -> Result<RunComparison> {
+        Ok(self.store.compare_runs(ids)?)
     }
 }
 
