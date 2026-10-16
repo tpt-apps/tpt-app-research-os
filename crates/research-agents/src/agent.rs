@@ -280,6 +280,21 @@ mod tests {
     }
 
     #[test]
+    fn a_lease_bound_capability_is_denied_because_no_lease_is_supplied() {
+        let mut agent = Agent::new("assistant").unwrap();
+        let lease_id = tpt_primitives::ids::LeaseId::from_raw([7u8; 32]);
+        let cap = capability_for(&agent, vec![grant("run/1", "read")]).bound_to_lease(lease_id);
+        agent.grant(cap).unwrap();
+        agent.start();
+        assert!(matches!(
+            agent.perform(grant("run/1", "read"), t(1)),
+            Err(AgentError::Denied(Denial::NotAuthorized(
+                AuthorityError::LeaseRequired(_)
+            )))
+        ));
+    }
+
+    #[test]
     fn invalid_agent_name_is_rejected() {
         assert!(matches!(Agent::new(""), Err(AgentError::InvalidName(_))));
     }
