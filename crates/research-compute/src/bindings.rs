@@ -36,6 +36,8 @@ pub(crate) fn register(
         },
     );
 
+    // Cloned before `ode_solve` takes `limits`, for the two `diff` overloads below.
+    let (diff_limits, diff_limits_with_params) = (limits.clone(), limits.clone());
     engine.register_fn(
         "ode_solve",
         move |rhs: String,
@@ -46,6 +48,19 @@ pub(crate) fn register(
               method: String|
               -> Result<Array, Box<EvalAltResult>> {
             ode_solve(rhs, params, y0, t0, t_eval, method, &limits)
+        },
+    );
+
+    engine.register_fn(
+        "diff",
+        move |expr: String, x: f64| -> Result<f64, Box<EvalAltResult>> {
+            crate::autodiff::diff(expr, x, Map::new(), &diff_limits)
+        },
+    );
+    engine.register_fn(
+        "diff",
+        move |expr: String, x: f64, params: Map| -> Result<f64, Box<EvalAltResult>> {
+            crate::autodiff::diff(expr, x, params, &diff_limits_with_params)
         },
     );
 

@@ -2656,6 +2656,7 @@ dependencies = [
  "sha2",
  "tempfile",
  "thiserror 2.0.21",
+ "tpt-math-autodiff-fwd",
  "tpt-math-linalg-dense",
  "tpt-math-prob-dist",
  "tpt-math-units-dyn",
@@ -3476,6 +3477,14 @@ dependencies = [
  "tokio-rustls",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "tpt-math-autodiff-fwd"
+version = "0.1.0"
+source = "git+https://github.com/tpt-solutions/tpt-math?rev=a16a8f5c63653cbfd8a95a0febdb22fce37af24f#a16a8f5c63653cbfd8a95a0febdb22fce37af24f"
+dependencies = [
+ "tpt-math-numeric 0.1.0 (git+https://github.com/tpt-solutions/tpt-math?rev=a16a8f5c63653cbfd8a95a0febdb22fce37af24f)",
 ]
 
 [[package]]

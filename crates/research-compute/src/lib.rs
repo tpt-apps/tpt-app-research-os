@@ -3,6 +3,7 @@
 //! and results into `research-store`. The language decision is in
 //! `docs/ARCHITECTURE.md`.
 
+mod autodiff;
 mod bindings;
 mod engine;
 mod error;
@@ -296,6 +297,22 @@ mod tests {
         )]);
         run(&mut session(1), &mut doc);
         assert_eq!(outputs_of(&doc, "s"), vec![text("22.0")]);
+    }
+
+    #[test]
+    fn the_compute_language_is_one_the_notebook_import_hosts() {
+        assert!(research_doc::HOSTED_LANGUAGES.contains(&LANGUAGE));
+    }
+
+    #[test]
+    fn diff_gives_the_exact_derivative_inside_a_cell() {
+        // d/dx x^3 at x = 2 is 12, and the derivative of exp(2x) at 0 is 2.
+        let mut doc = document(vec![code(
+            "d",
+            "let a = diff(\"x * x * x\", 2.0);              let b = diff(\"exp(k * x)\", 0.0, #{k: 2.0});              (a * 1000.0).round() + (b * 1000.0).round()",
+        )]);
+        run(&mut session(1), &mut doc);
+        assert_eq!(outputs_of(&doc, "d"), vec![text("14000.0")]);
     }
 
     #[test]

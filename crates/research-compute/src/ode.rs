@@ -134,7 +134,7 @@ fn floats(values: Array, what: &str) -> Result<Vec<f64>, Box<EvalAltResult>> {
         .collect()
 }
 
-fn parameters(params: Map) -> Result<BTreeMap<String, f64>, Box<EvalAltResult>> {
+pub(crate) fn parameters(params: Map) -> Result<BTreeMap<String, f64>, Box<EvalAltResult>> {
     params
         .into_iter()
         .map(|(name, value)| {
@@ -148,7 +148,7 @@ fn parameters(params: Map) -> Result<BTreeMap<String, f64>, Box<EvalAltResult>> 
         .collect()
 }
 
-fn runtime(message: &str) -> Box<EvalAltResult> {
+pub(crate) fn runtime(message: &str) -> Box<EvalAltResult> {
     Box::new(EvalAltResult::ErrorRuntime(
         Dynamic::from(message.to_string()),
         Position::NONE,
