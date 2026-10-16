@@ -205,6 +205,14 @@ fn export_output(output: &Output) -> Value {
                 "metadata": {},
             })
         }
+        Output::Svg { svg } => json!({
+            "output_type": "display_data",
+            "data": {
+                "image/svg+xml": source_lines(svg),
+                "text/plain": ["[plot]"],
+            },
+            "metadata": {},
+        }),
     }
 }
 
@@ -224,6 +232,13 @@ fn convert_outputs(
             }),
             Some("execute_result") | Some("display_data") => {
                 let data = item.get("data").and_then(Value::as_object);
+                if let Some(svg) = data.and_then(|d| d.get("image/svg+xml")) {
+                    // A plot keeps its SVG. Its text/plain is only a label.
+                    converted.push(Output::Svg {
+                        svg: multiline(Some(svg)),
+                    });
+                    continue;
+                }
                 let text = data.and_then(|d| d.get("text/plain"));
                 match text {
                     Some(text) => converted.push(Output::Text {
@@ -453,6 +468,24 @@ mod tests {
             },
         });
 
+        let exported = export_ipynb(&doc).unwrap();
+        let report = import_ipynb(&exported, HOSTED).unwrap();
+        assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+        assert_eq!(report.document, doc);
+    }
+
+    #[test]
+    fn a_plot_survives_export_and_import_as_svg() {
+        let svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><circle r=\"3\"/></svg>".to_string();
+        let mut doc = Document::new(DocId::new("d").unwrap(), "plots");
+        doc.cells.push(Cell {
+            id: CellId::new("p").unwrap(),
+            body: CellBody::Code {
+                language: "rhai".into(),
+                source: "show_plot(s)".into(),
+                outputs: vec![Output::Svg { svg: svg.clone() }],
+            },
+        });
         let exported = export_ipynb(&doc).unwrap();
         let report = import_ipynb(&exported, HOSTED).unwrap();
         assert!(report.warnings.is_empty(), "{:?}", report.warnings);

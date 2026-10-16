@@ -108,6 +108,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 println!("    {row:?}");
                             }
                         }
+                        Output::Svg { svg } => {
+                            println!("  {}: plot, {} bytes of SVG", cell.id, svg.len())
+                        }
                     }
                 }
             }

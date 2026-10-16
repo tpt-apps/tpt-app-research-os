@@ -4,9 +4,7 @@
 use std::fmt;
 
 use research_agents::reproducibility::rerun_grant;
-use research_agents::{
-    check_with_agent, ActionRecord, Agent, CellCheck, CheckError, ReproReport,
-};
+use research_agents::{check_with_agent, ActionRecord, Agent, CellCheck, CheckError, ReproReport};
 use research_compute::{Control, Limits, RunSummary, LANGUAGE};
 use research_core::{CellId, RunId};
 use research_doc::{Cell, CellBody, Document};
@@ -130,8 +128,7 @@ impl Editor {
         let doc = self.document.as_ref().ok_or(EditorError::NoDocumentOpen)?;
         let doc_id = doc.id.to_string();
 
-        let mut agent =
-            Agent::new(CHECKER).map_err(|e| EditorError::Agent(e.to_string()))?;
+        let mut agent = Agent::new(CHECKER).map_err(|e| EditorError::Agent(e.to_string()))?;
         let domain = AuthorityDomain::new(DOMAIN).map_err(|e| EditorError::Agent(e.to_string()))?;
         let capability = Capability::mint(
             domain,
@@ -498,6 +495,8 @@ mod tests {
         ed.set_agents_enabled(true);
         let report = ed.check_reproducibility().unwrap();
         assert!(!report.is_reproducible());
-        assert!(ed.status().starts_with("Not reproducible: 1 cell(s) differ"));
+        assert!(ed
+            .status()
+            .starts_with("Not reproducible: 1 cell(s) differ"));
     }
 }

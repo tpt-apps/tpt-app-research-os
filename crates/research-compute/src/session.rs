@@ -141,7 +141,7 @@ impl Session {
         if !printed.is_empty() {
             outputs.push(Output::Text { text: printed });
         }
-        outputs.extend(sinks.tables.borrow().iter().cloned());
+        outputs.extend(sinks.shown.borrow().iter().cloned());
 
         match result {
             Ok(value) => {
@@ -234,6 +234,16 @@ impl Session {
                         text: format!("{name}: {message}"),
                     },
                 ),
+                Output::Svg { svg } => {
+                    let sha256 = recording.store.put_blob(svg.as_bytes())?;
+                    (
+                        format!("plot-{i}"),
+                        Value::Blob {
+                            media_type: "image/svg+xml".into(),
+                            sha256,
+                        },
+                    )
+                }
                 Output::Table { .. } => continue,
             };
             results.push(named);

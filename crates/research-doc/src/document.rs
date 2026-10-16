@@ -60,6 +60,10 @@ pub enum Output {
         columns: Vec<String>,
         rows: Vec<Vec<String>>,
     },
+    /// A plot, as SVG text, from `show_plot`.
+    Svg {
+        svg: String,
+    },
 }
 
 impl Document {

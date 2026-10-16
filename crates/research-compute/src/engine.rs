@@ -85,7 +85,8 @@ impl Control {
 #[derive(Clone, Default)]
 pub(crate) struct Sinks {
     pub prints: Rc<RefCell<Vec<String>>>,
-    pub tables: Rc<RefCell<Vec<Output>>>,
+    /// Tables and plots, in the order the cell showed them.
+    pub shown: Rc<RefCell<Vec<Output>>>,
 }
 
 /// Build an engine for one cell. `sinks` receives what the cell prints and shows.
@@ -114,7 +115,7 @@ pub(crate) fn build(
         }
     });
 
-    crate::bindings::register(&mut engine, seed, limits.clone(), sinks.tables.clone());
+    crate::bindings::register(&mut engine, seed, limits.clone(), sinks.shown.clone());
     crate::units::register(&mut engine);
 
     let print_sink = sinks.prints.clone();

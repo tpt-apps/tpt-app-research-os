@@ -300,6 +300,53 @@ mod tests {
     }
 
     #[test]
+    fn show_plot_keeps_the_svg_and_refuses_other_text() {
+        let svg = "<svg><rect width=1 /></svg>";
+        let mut doc = document(vec![
+            code("p", &format!("show_plot(\"{svg}\"); 1")),
+            code("bad", "show_plot(\"not a plot\")"),
+        ]);
+        run(&mut session(1), &mut doc);
+        assert!(outputs_of(&doc, "p").contains(&Output::Svg {
+            svg: svg.to_string()
+        }));
+        assert_eq!(error_name(&doc, "bad"), "RuntimeError");
+    }
+
+    #[test]
+    fn a_recorded_plot_is_stored_as_a_blob_with_its_bytes() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = ProjectManifest::new(ProjectId::new("p").unwrap(), "P", 0).unwrap();
+        let store = ProjectStore::create(&dir.path().join("p"), &manifest).unwrap();
+        let svg = "<svg><line x1=0 /></svg>";
+        let mut doc = document(vec![code("p", &format!("show_plot(\"{svg}\")"))]);
+        let recording = Recording {
+            store: &store,
+            run_prefix: "doc-1",
+        };
+        session(1)
+            .run_document(&mut doc, &Control::new(), Some(recording))
+            .unwrap();
+
+        let blobs: Vec<_> = store
+            .list_runs()
+            .unwrap()
+            .iter()
+            .flat_map(|r| store.results_for_run(&r.id).unwrap())
+            .filter_map(|r| match r.value {
+                Value::Blob { media_type, sha256 } => Some((media_type, sha256)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].0, "image/svg+xml");
+        assert_eq!(
+            store.get_blob(&blobs[0].1).unwrap().unwrap(),
+            svg.as_bytes()
+        );
+    }
+
+    #[test]
     fn the_compute_language_is_one_the_notebook_import_hosts() {
         assert!(research_doc::HOSTED_LANGUAGES.contains(&LANGUAGE));
     }

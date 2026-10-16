@@ -135,6 +135,7 @@ fn output_line(output: &Output) -> String {
             lines.extend(rows.iter().map(|row| row.join("\t")));
             lines.join("\n")
         }
+        Output::Svg { svg } => format!("[plot: SVG, {} bytes]", svg.len()),
     }
 }
 

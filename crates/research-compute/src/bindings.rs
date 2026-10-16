@@ -20,7 +20,7 @@ pub(crate) fn register(
     engine: &mut Engine,
     seed: u64,
     limits: Limits,
-    tables: Rc<RefCell<Vec<Output>>>,
+    shown: Rc<RefCell<Vec<Output>>>,
 ) {
     engine.register_fn("uniform", move |index: i64| uniform_at(seed, index));
 
@@ -64,6 +64,20 @@ pub(crate) fn register(
         },
     );
 
+    let plots = shown.clone();
+    engine.register_fn(
+        "show_plot",
+        move |svg: String| -> Result<(), Box<EvalAltResult>> {
+            if !svg.trim_start().starts_with("<svg") {
+                return Err(runtime_text(
+                    "show_plot needs SVG text that starts with <svg",
+                ));
+            }
+            plots.borrow_mut().push(Output::Svg { svg });
+            Ok(())
+        },
+    );
+
     engine.register_fn(
         "show_table",
         move |columns: Array, rows: Array| -> Result<(), Box<EvalAltResult>> {
@@ -81,7 +95,7 @@ pub(crate) fn register(
                 }
                 body.push(row.iter().map(|v| v.to_string()).collect());
             }
-            tables.borrow_mut().push(Output::Table {
+            shown.borrow_mut().push(Output::Table {
                 columns,
                 rows: body,
             });
