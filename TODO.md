@@ -20,7 +20,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] `tpt-keystone-db`: open a local DB, store/query a record ✓ (builds on Windows; used by research-store), vector search not yet tried. Gotchas: `key` is a reserved word in its SQL; its lease has no release API and does not block a second handle with the same holder id, so research-store takes an OS file lock instead.
 - [~] `tpt-math` pinned at GitHub master (a16a8f5): `linalg-dense` (solve), `prob-dist` (normal) and `units-dyn` (dimension-checked quantities) build and are bound in research-compute. Autodiff, arbitrary precision and `tpt-mathr` not yet checked
 - [x] `tpt-science`: ODE solve end to end. `tpt-sci-ode` vendored at `vendor/tpt-sci-ode` without the cranelift JIT, which avoids the version issue. Upstream repo cannot be pinned by git: its `templates/` manifests are not valid TOML and break cargo. Raise upstream
-- [ ] `tpt-chemistry`, `tpt-fem`: confirm they build; decide MVP exposure (spec §10)
+- [~] `tpt-chemistry` (7c420ce857244b8fbab214b1520dcebbda8d879b) and `tpt-fem` (366512b3cf1dd4a59dcb2f3a1ed6874eb3e72eb3): both facade crates build on Windows (scratch probe, `cargo check`). Not added to the workspace, and not pinned yet. Decision: neither is in the MVP, so they stay out of the workspace until §11 "Deeper chemistry and FEM integration" is picked up
 - [~] `tpt-appfront`: pinned at GitHub master (6146526). The canvas backend builds on Windows and `research-app` opens a native window with a heading, status text and button. Not yet run interactively. Text editor and plot widgets not checked
 - [ ] `tpt-anima` (light subset): can it be used without model downloads?
 - [~] `tpt-primitives` pinned at its GitHub master (55b4a2a); capability API used by research-agents and tested. `tpt-crypto` not yet checked
@@ -64,9 +64,9 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] Document editor: documents list, open/new, cell source edits, add code and text cells, run, save, and outputs shown as text. Headless logic tested (`editor.rs`, `view.rs`). Narrative rendering of text cells is plain text; no inline plots or tables yet
 - [ ] Plot viewer
 - [~] Experiment/run comparison view: tick runs in the side list, compare them side by side (differing inputs, results per run, missing results shown as —). Headless logic tested (`compare.rs`, `view.rs`). Not yet checked in the window; plot results not shown
-- [ ] Settings (agents on/off, paths)
-- [ ] Keyboard shortcuts, light/dark theme
-- [ ] Decide MVP exposure of library surface vs library-only (spec §10)
+- [~] Settings: agents on/off (off by default; "Check reproducibility" needs it on). Not persisted yet, so it resets on restart. Paths: none to set yet
+- [ ] Keyboard shortcuts, light/dark theme: blocked upstream. `tpt-appfront-canvas` passes no key events to the app, and `run_native` gives no hook to set the egui visuals, so the app follows the egui default
+- [x] Decide MVP exposure of library surface vs library-only (spec §10). Decision: the MVP UI exposes documents, runs, comparison and packaging only. Library-only: the `tpt-math` bindings beyond units/solve/normal, DAE/events, agents' suggestion helper, chemistry and FEM
 
 ## 7. research-package (spec §4, §6)
 - [x] Package layout: zip with manifest, DB snapshot, documents, data files (whole project directory; `docs/PACKAGE_FORMAT.md`)
@@ -76,14 +76,14 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Optional encryption on export (chacha20poly1305 + argon2, as in digital-twin)
 - [x] Reject malformed or malicious archives: traversal, reserved names, case collisions, unlisted or duplicate entries, size lies, oversized totals. Zip-bomb reads are bounded by declared size
 - [x] Version compatibility checks (package and project format versions)
-- [ ] Packing reads the whole project into memory. Streaming needed for large projects
+- [~] Packing streams each file from disk: one pass hashes, a second writes the archive, and each file is checked against its hash as it is written (`build_zip_checked`, tested). The archive itself is still built in memory, and so is import. Import stays in memory by design, because nothing may reach disk before verification passes (module docs). Streaming the archive output and encryption would need a streamed AEAD; not started
 
 ## 8. research-agents (optional, light)
 - [x] Capability model using `tpt-primitives` (deny by default): agent starts with no grants, stopped by default, every attempt logged. Lease and epoch bindings are denied until the app supplies them
-- [x] Reproducibility check (re-run and compare): `research_agents::check_document` reruns a copy from scratch with the same seed and reports per-cell matches, differences and never-run cells. `check_with_agent` requires a `document:<id>` `rerun` grant. Checks documents, not runs across machines; no UI wiring yet
+- [x] Reproducibility check (re-run and compare): `research_agents::check_document` reruns a copy from scratch with the same seed and reports per-cell matches, differences and never-run cells. `check_with_agent` requires a `document:<id>` `rerun` grant. Checks documents, not runs across machines. Wired into the window as "Check reproducibility" (needs agents on); each check uses a fresh agent holding only the rerun grant
 - [ ] Analysis suggestion helper
 - [x] No large model download by default (spec §8): nothing in the crate downloads anything
-- [~] Full action log: done (`Agent::log`). UI indicator: `Agent::is_running` exists; the indicator itself is §6
+- [~] Full action log: done (`Agent::log`). UI indicator: `Agent::is_running` exists, but checks run synchronously and stop the agent, so there is nothing to show while one runs. The attempts are kept in `Editor::agent_log`
 
 ## 9. research-license + distribution (spec §7)
 - [~] Offline licence key file verification (no network, no telemetry): Ed25519 check against a supplied vendor key, tested. The vendor public key is not embedded yet, and the vendor signing tool is kept out of this repo
@@ -101,7 +101,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Success-criteria walk-through (spec §9): create project → run workflow → store results → move to another machine
 - [ ] Reproducibility test: same project, two machines, identical results
 - [ ] Performance check on a mid-range laptop
-- [ ] Security review of package import and agent sandbox
+- [x] Security review of package import and agent sandbox: no exploitable issue found. Lease-bound capabilities are tested as denied (no lease is supplied). Decisions: the agent action log stays unbounded, because each entry is the audit record and agents only run on user action; a log cap would need its own design. Import holds the archive in memory (see §7), by design
 - [x] README, CONTRIBUTING, SECURITY docs. CI now runs `cargo deny check bans licenses sources`
 
 ## 11. Later (no commitment, spec §4)
