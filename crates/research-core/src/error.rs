@@ -21,4 +21,8 @@ pub enum Error {
     /// A manifest field has a value that is structurally valid but not allowed.
     #[error("invalid manifest: {0}")]
     InvalidManifest(String),
+
+    /// The operating system could not supply random bytes for a new id.
+    #[error("no random bytes available for a new id")]
+    Random,
 }

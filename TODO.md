@@ -28,7 +28,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] Add each confirmed crate to `[workspace.dependencies]` with a pinned rev (done: `tpt-keystone`, `tpt-primitives`)
 
 ## 2. research-core
-- [x] `ProjectId`, `RunId`, `DocId`, `ResultId` types (validated `Id<T>` newtypes; generation not yet implemented)
+- [x] `ProjectId`, `RunId`, `DocId`, `ResultId` types (validated `Id<T>` newtypes; `Id::generate(prefix)` makes a random 128-bit id)
 - [x] Unified error type
 - [x] Project manifest schema (name, created, format version, foundation revs)
 

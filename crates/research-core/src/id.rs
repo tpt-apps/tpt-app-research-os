@@ -87,9 +87,39 @@ impl<T> Id<T> {
         })
     }
 
+    /// A new id that no existing one shares: `prefix` followed by 128 random bits
+    /// in hex, for example `run-3f9c...`. The prefix must itself be a valid id part.
+    pub fn generate(prefix: &str) -> Result<Self> {
+        let mut bytes = [0u8; 16];
+        getrandom::fill(&mut bytes).map_err(|_| Error::Random)?;
+        let hex: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        Self::new(format!("{prefix}-{hex}"))
+    }
+
     /// The underlying string form of the id.
     pub fn as_str(&self) -> &str {
         &self.value
+    }
+}
+
+#[cfg(test)]
+mod generate_tests {
+    use super::*;
+
+    struct Thing;
+
+    #[test]
+    fn generated_ids_have_the_prefix_and_are_distinct() {
+        let a: Id<Thing> = Id::generate("run").unwrap();
+        let b: Id<Thing> = Id::generate("run").unwrap();
+        assert!(a.as_str().starts_with("run-"));
+        assert_eq!(a.as_str().len(), "run-".len() + 32);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn a_bad_prefix_is_refused() {
+        assert!(Id::<Thing>::generate("bad prefix").is_err());
     }
 }
 
