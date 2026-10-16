@@ -55,7 +55,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] Cell execution and re-run of stale cells: cells run in order on a shared scope, a changed cell reruns with everything after it. A true dependency graph is not built
 - [x] Cancellation, timeouts, memory limit: cancel flag, wall-clock timeout, operation, string and collection limits. All tested
 - [x] Deterministic seeding for reproducibility: `uniform(index)` from the session seed, tested across sessions
-- [~] Output capture: text, errors and tables (`show_table(columns, rows)`, validated, shown in the editor). Plots not yet: a plot needs the store inside a run, to save its bytes as a blob
+- [x] Output capture: text, errors, tables (`show_table(columns, rows)`) and plots (`show_plot(svg)`, which must start with `<svg`). A recorded plot is stored as a blob with media type `image/svg+xml`, and the notebook export and import keep it as SVG. The window shows a plot as a size line, not an image; a rendered view would need AppFront image support
 - [x] Record every run into research-store: each cell that runs becomes a run, with its outputs and value as results
 
 ## 6. research-app (AppFront UI)
