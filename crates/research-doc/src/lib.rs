@@ -7,7 +7,7 @@ mod ipynb;
 
 pub use document::{Cell, CellBody, Document, Output, FORMAT_VERSION};
 pub use error::{DocError, Result};
-pub use ipynb::{export_ipynb, import_ipynb, ImportReport};
+pub use ipynb::{export_ipynb, import_ipynb, ImportReport, HOSTED_LANGUAGES};
 
 /// Crate name, used by smoke tests.
 pub const NAME: &str = "research-doc";

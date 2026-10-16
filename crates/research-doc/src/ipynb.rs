@@ -23,6 +23,10 @@ pub struct ImportReport {
 
 /// Import an nbformat 4 notebook.
 ///
+/// The languages the compute layer runs. Cells in any other language import with a
+/// warning and do not run. Rhai is the only one (see `docs/ARCHITECTURE.md`).
+pub const HOSTED_LANGUAGES: &[&str] = &["rhai"];
+
 /// `hosted_languages` lists the languages the compute layer can run. A code cell
 /// in any other language is still imported, with a warning.
 pub fn import_ipynb(json: &str, hosted_languages: &[&str]) -> Result<ImportReport> {
@@ -300,7 +304,7 @@ fn source_lines(text: &str) -> Vec<String> {
 mod tests {
     use super::*;
 
-    const HOSTED: &[&str] = &["rhai"];
+    const HOSTED: &[&str] = HOSTED_LANGUAGES;
 
     fn notebook(cells: &str, kernel: &str) -> String {
         format!(
