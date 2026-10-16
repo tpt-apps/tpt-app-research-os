@@ -13,7 +13,7 @@ mod error;
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
-use std::io::{Cursor, Read, Write};
+use std::io::{self, Cursor, Read, Write};
 use std::path::{Path, PathBuf};
 
 use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
@@ -92,9 +92,25 @@ pub fn pack_project(dir: &Path, created: &str, signer: &SigningKey) -> Result<Ve
     let project = ProjectManifest::from_json(&manifest_text)?;
 
     let _lock = lock_project(dir)?;
-    let mut files = Vec::new();
-    collect_files(dir, dir, &mut files)?;
-    pack_files(&files, project.id.as_str(), created, signer)
+    let mut paths = Vec::new();
+    collect_paths(dir, dir, &mut paths)?;
+    paths.sort_by(|a, b| a.0.cmp(&b.0));
+    check_names(paths.iter().map(|(name, _)| name.as_str()))?;
+
+    // Hash every file once, streaming from disk, then write the archive from disk
+    // again. Each file is checked against its hash as it is written, so a file
+    // that changes in between is refused instead of being packed under a stale hash.
+    let mut entries = Vec::with_capacity(paths.len());
+    for (name, path) in &paths {
+        let (size, sha256) = copy_hashed(&mut File::open(path)?, &mut io::sink())?;
+        entries.push(Entry {
+            path: name.clone(),
+            sha256,
+            size,
+        });
+    }
+    let sources: Vec<Source> = paths.iter().map(|(_, path)| Source::File(path)).collect();
+    seal(project.id.as_str(), created, signer, entries, &sources)
 }
 
 /// Pack in-memory files. Paths are relative with `/` separators and must include
@@ -108,28 +124,46 @@ pub fn pack_files(
 ) -> Result<Vec<u8>> {
     let mut files = files.to_vec();
     files.sort_by(|a, b| a.0.cmp(&b.0));
-    check_file_set(&files)?;
+    check_names(files.iter().map(|(name, _)| name.as_str()))?;
     if !files.iter().any(|(p, _)| p == PROJECT_MANIFEST) {
         return Err(PackageError::Missing(PROJECT_MANIFEST.into()));
     }
 
+    let entries = files
+        .iter()
+        .map(|(path, data)| Entry {
+            path: path.clone(),
+            sha256: hex(&Sha256::digest(data)),
+            size: data.len() as u64,
+        })
+        .collect();
+    let sources: Vec<Source> = files.iter().map(|(_, data)| Source::Bytes(data)).collect();
+    seal(project_id, created, signer, entries, &sources)
+}
+
+/// Build the signed manifest for `entries` and write the archive.
+fn seal(
+    project_id: &str,
+    created: &str,
+    signer: &SigningKey,
+    entries: Vec<Entry>,
+    sources: &[Source],
+) -> Result<Vec<u8>> {
     let manifest = PackageManifest {
         format_version: FORMAT_VERSION,
         project_id: project_id.to_string(),
         created: created.to_string(),
         signer: hex(signer.verifying_key().as_bytes()),
-        entries: files
-            .iter()
-            .map(|(path, data)| Entry {
-                path: path.clone(),
-                sha256: hex(&Sha256::digest(data)),
-                size: data.len() as u64,
-            })
-            .collect(),
+        entries,
     };
     let manifest_bytes = serde_json::to_vec_pretty(&manifest)?;
     let signature = signer.sign(&manifest_bytes);
-    build_zip(&manifest_bytes, &signature.to_bytes(), &files)
+    build_zip_checked(
+        &manifest_bytes,
+        &signature.to_bytes(),
+        &manifest.entries,
+        sources,
+    )
 }
 
 /// The public key that signed `bytes`, as its manifest records it.
@@ -289,7 +323,8 @@ fn lock_project(dir: &Path) -> Result<File> {
     }
 }
 
-fn collect_files(root: &Path, dir: &Path, out: &mut Vec<(String, Vec<u8>)>) -> Result<()> {
+/// Walk `dir` and list every file as (package path, file on disk). Reads nothing.
+fn collect_paths(root: &Path, dir: &Path, out: &mut Vec<(String, PathBuf)>) -> Result<()> {
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -298,7 +333,7 @@ fn collect_files(root: &Path, dir: &Path, out: &mut Vec<(String, Vec<u8>)>) -> R
             return Err(PackageError::Symlink(path));
         }
         if kind.is_dir() {
-            collect_files(root, &path, out)?;
+            collect_paths(root, &path, out)?;
             continue;
         }
         let relative = path
@@ -313,22 +348,22 @@ fn collect_files(root: &Path, dir: &Path, out: &mut Vec<(String, Vec<u8>)>) -> R
             .collect::<Option<Vec<_>>>()
             .ok_or_else(|| PackageError::UnsafePath(relative.display().to_string()))?
             .join("/");
-        out.push((name, std::fs::read(&path)?));
+        out.push((name, path));
     }
     Ok(())
 }
 
-/// Checks on the files being packed: safe names, no reserved names, no
-/// case-insensitive collisions.
-fn check_file_set(files: &[(String, Vec<u8>)]) -> Result<()> {
+/// Checks on the names of the files being packed: safe names, no reserved names,
+/// no case-insensitive collisions.
+fn check_names<'a>(names: impl Iterator<Item = &'a str>) -> Result<()> {
     let mut seen = HashSet::new();
-    for (path, _) in files {
+    for path in names {
         check_safe_path(path)?;
         if path == PACKAGE_MANIFEST || path == SIGNATURE {
-            return Err(PackageError::UnsafePath(path.clone()));
+            return Err(PackageError::UnsafePath(path.to_string()));
         }
         if !seen.insert(path.to_lowercase()) {
-            return Err(PackageError::Duplicate(path.clone()));
+            return Err(PackageError::Duplicate(path.to_string()));
         }
     }
     Ok(())
@@ -384,6 +419,8 @@ fn check_safe_path(path: &str) -> Result<()> {
     Ok(())
 }
 
+/// Writes archives with no checks, so tests can build malformed packages.
+#[cfg(test)]
 fn build_zip(manifest: &[u8], signature: &[u8], files: &[(String, Vec<u8>)]) -> Result<Vec<u8>> {
     let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
     let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
@@ -391,6 +428,67 @@ fn build_zip(manifest: &[u8], signature: &[u8], files: &[(String, Vec<u8>)]) -> 
     write_entry(&mut writer, SIGNATURE, signature, options)?;
     for (path, data) in files {
         write_entry(&mut writer, path, data, options)?;
+    }
+    let cursor = writer
+        .finish()
+        .map_err(|e| PackageError::Archive(e.to_string()))?;
+    Ok(cursor.into_inner())
+}
+
+/// Where the bytes of one packed file come from.
+enum Source<'a> {
+    Bytes(&'a [u8]),
+    File(&'a Path),
+}
+
+fn open_source<'a>(source: &Source<'a>) -> Result<Box<dyn Read + 'a>> {
+    Ok(match source {
+        Source::Bytes(data) => Box::new(*data),
+        Source::File(path) => Box::new(File::open(path)?),
+    })
+}
+
+/// Copy `reader` into `sink` in fixed-size chunks. Returns the byte count and the
+/// SHA-256 of what was copied.
+fn copy_hashed(reader: &mut dyn Read, sink: &mut dyn Write) -> Result<(u64, String)> {
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 64 * 1024];
+    let mut size = 0u64;
+    loop {
+        let n = reader.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+        sink.write_all(&buf[..n])?;
+        size += n as u64;
+    }
+    Ok((size, hex(&hasher.finalize())))
+}
+
+/// Write a package archive, streaming each file from its source. Each file must
+/// match its manifest entry as it is written, or packing fails.
+fn build_zip_checked(
+    manifest: &[u8],
+    signature: &[u8],
+    entries: &[Entry],
+    sources: &[Source],
+) -> Result<Vec<u8>> {
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Deflated);
+    write_entry(&mut writer, PACKAGE_MANIFEST, manifest, options)?;
+    write_entry(&mut writer, SIGNATURE, signature, options)?;
+    for (entry, source) in entries.iter().zip(sources) {
+        writer
+            .start_file(&entry.path, options)
+            .map_err(|e| PackageError::Archive(e.to_string()))?;
+        let mut reader = open_source(source)?;
+        let (size, sha256) = copy_hashed(&mut reader, &mut writer)?;
+        if size != entry.size || sha256 != entry.sha256 {
+            return Err(PackageError::HashMismatch {
+                path: entry.path.clone(),
+            });
+        }
     }
     let cursor = writer
         .finish()
@@ -749,6 +847,25 @@ mod tests {
         assert!(matches!(
             pack_files(&files, "p", "t", &signer()),
             Err(PackageError::Duplicate(_))
+        ));
+    }
+
+    #[test]
+    fn a_source_that_differs_from_its_hash_is_refused_while_packing() {
+        let work = tempfile::tempdir().unwrap();
+        let path = work.path().join("data.csv");
+        std::fs::write(&path, b"changed after hashing").unwrap();
+        // The entry records the hash of the earlier content.
+        let stale = Entry {
+            path: "data.csv".into(),
+            sha256: hex(&Sha256::digest(b"original content")),
+            size: "original content".len() as u64,
+        };
+        let manifest = b"{}";
+        let sig = signer().sign(manifest).to_bytes();
+        assert!(matches!(
+            build_zip_checked(manifest, &sig, &[stale], &[Source::File(&path)]),
+            Err(PackageError::HashMismatch { .. })
         ));
     }
 
