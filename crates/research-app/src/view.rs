@@ -20,6 +20,8 @@ pub enum Msg {
     ToggleRun(String),
     CompareRuns,
     ClearComparison,
+    ToggleAgents,
+    CheckReproducibility,
 }
 
 /// The whole window: documents on the left, the open document on the right.
@@ -51,6 +53,10 @@ pub fn view(editor: &Editor) -> UITree<Msg> {
                 side.button("Clear comparison")
                     .on_click(Msg::ClearComparison);
             }
+            side.heading(3, "Settings".to_string());
+            let agents = if editor.agents_enabled() { "on" } else { "off" };
+            side.button(format!("Agents: {agents}"))
+                .on_click(Msg::ToggleAgents);
         });
         if let Some(cmp) = editor.comparison() {
             c.container(|cmp_view| {
@@ -70,6 +76,8 @@ pub fn view(editor: &Editor) -> UITree<Msg> {
                 main.button("Save").on_click(Msg::Save);
                 main.button("Add code cell").on_click(Msg::AddCode);
                 main.button("Add text cell").on_click(Msg::AddMarkdown);
+                main.button("Check reproducibility")
+                    .on_click(Msg::CheckReproducibility);
                 for (index, cell) in doc.cells.iter().enumerate() {
                     let (label, source, outputs) = match &cell.body {
                         CellBody::Code {
@@ -106,6 +114,12 @@ pub fn apply(editor: &mut Editor, msg: Msg) {
             editor.clear_comparison();
             Ok(())
         }
+        Msg::ToggleAgents => {
+            let on = !editor.agents_enabled();
+            editor.set_agents_enabled(on);
+            Ok(())
+        }
+        Msg::CheckReproducibility => editor.check_reproducibility().map(|_| ()),
     };
     if let Err(error) = result {
         editor.set_status(error.to_string());
@@ -198,6 +212,24 @@ mod tests {
         );
         apply(&mut ed, Msg::ClearComparison);
         assert!(ed.selected_runs().is_empty());
+    }
+
+    #[test]
+    fn agents_toggle_and_check_from_the_window() {
+        let (_work, mut ed) = editor();
+        apply(&mut ed, Msg::New);
+        apply(&mut ed, Msg::AddCode);
+        apply(&mut ed, Msg::EditSource(0, "1 + 1".into()));
+        apply(&mut ed, Msg::Run);
+
+        apply(&mut ed, Msg::CheckReproducibility);
+        assert!(ed.status().contains("agents are off"), "{}", ed.status());
+
+        apply(&mut ed, Msg::ToggleAgents);
+        assert!(ed.agents_enabled());
+        apply(&mut ed, Msg::CheckReproducibility);
+        assert!(ed.status().starts_with("Reproducible"), "{}", ed.status());
+        let _ = view(&ed);
     }
 
     #[test]

@@ -14,6 +14,8 @@ tpt-appfront-canvas = { workspace = true }
 research-compute = { workspace = true }
 research-doc = { workspace = true }
 research-store = { workspace = true }
+research-agents = { workspace = true }
+tpt-primitives = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

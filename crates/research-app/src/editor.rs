@@ -3,10 +3,23 @@
 
 use std::fmt;
 
-use research_compute::{Control, RunSummary, LANGUAGE};
+use research_agents::reproducibility::rerun_grant;
+use research_agents::{
+    check_with_agent, ActionRecord, Agent, CellCheck, CheckError, ReproReport,
+};
+use research_compute::{Control, Limits, RunSummary, LANGUAGE};
 use research_core::{CellId, RunId};
 use research_doc::{Cell, CellBody, Document};
 use research_store::{DocumentSummary, Run, RunComparison};
+use tpt_primitives::capability::{AuthorityDomain, Capability};
+use tpt_primitives::LogicalTime;
+
+/// Name of the agent that performs reproducibility checks.
+const CHECKER: &str = "reproducibility-checker";
+/// Authority domain the checker's capabilities are minted in.
+const DOMAIN: &str = "research";
+/// Seed the editor uses for runs, so a check reproduces what the window ran.
+const SEED: u64 = 0;
 
 use crate::workspace::{Workspace, WorkspaceError};
 
@@ -30,6 +43,12 @@ pub enum EditorError {
     NoSuchCell(usize),
     /// Comparing needs at least two selected runs.
     NotEnoughRuns,
+    /// A reproducibility check needs agents switched on in settings.
+    AgentsOff,
+    /// The agent or its capability could not be set up.
+    Agent(String),
+    /// The check itself failed.
+    Check(CheckError),
 }
 
 impl fmt::Display for EditorError {
@@ -40,6 +59,9 @@ impl fmt::Display for EditorError {
             Self::DocumentMissing(id) => write!(f, "no document called {id}"),
             Self::NoSuchCell(i) => write!(f, "there is no cell {i}"),
             Self::NotEnoughRuns => write!(f, "select at least two runs to compare"),
+            Self::AgentsOff => write!(f, "agents are off; turn them on in settings first"),
+            Self::Agent(reason) => write!(f, "agent setup failed: {reason}"),
+            Self::Check(e) => write!(f, "reproducibility check failed: {e}"),
         }
     }
 }
@@ -62,6 +84,11 @@ pub struct Editor {
     /// Runs ticked for comparison, in the order they were ticked.
     selected_runs: Vec<RunId>,
     comparison: Option<RunComparison>,
+    agents_enabled: bool,
+    /// Every action any checker agent attempted, in order.
+    agent_log: Vec<ActionRecord>,
+    /// Logical time for agent actions; advances once per check.
+    clock: u64,
 }
 
 impl Editor {
@@ -72,7 +99,67 @@ impl Editor {
             status: "Open or create a document to start.".into(),
             selected_runs: Vec::new(),
             comparison: None,
+            agents_enabled: false,
+            agent_log: Vec::new(),
+            clock: 0,
         }
+    }
+
+    /// Whether agents may run. Off until the user turns them on.
+    pub fn agents_enabled(&self) -> bool {
+        self.agents_enabled
+    }
+
+    pub fn set_agents_enabled(&mut self, on: bool) {
+        self.agents_enabled = on;
+        self.status = format!("Agents {}.", if on { "on" } else { "off" });
+    }
+
+    /// Every action attempted by a checker agent, oldest first.
+    pub fn agent_log(&self) -> &[ActionRecord] {
+        &self.agent_log
+    }
+
+    /// Re-run the open document from scratch and compare with its stored outputs.
+    /// Each check uses a fresh agent that holds only the rerun grant for this
+    /// document, and the agent is stopped afterwards.
+    pub fn check_reproducibility(&mut self) -> Result<ReproReport> {
+        if !self.agents_enabled {
+            return Err(EditorError::AgentsOff);
+        }
+        let doc = self.document.as_ref().ok_or(EditorError::NoDocumentOpen)?;
+        let doc_id = doc.id.to_string();
+
+        let mut agent =
+            Agent::new(CHECKER).map_err(|e| EditorError::Agent(e.to_string()))?;
+        let domain = AuthorityDomain::new(DOMAIN).map_err(|e| EditorError::Agent(e.to_string()))?;
+        let capability = Capability::mint(
+            domain,
+            agent.principal().clone(),
+            [rerun_grant(&doc_id)],
+            false,
+        )
+        .map_err(|e| EditorError::Agent(e.to_string()))?;
+        agent
+            .grant(capability)
+            .map_err(|e| EditorError::Agent(e.to_string()))?;
+
+        agent.start();
+        self.clock += 1;
+        let result = check_with_agent(
+            &mut agent,
+            &doc_id,
+            doc,
+            SEED,
+            Limits::default(),
+            LogicalTime::new(self.clock),
+        );
+        agent.stop();
+        self.agent_log.extend(agent.log().iter().cloned());
+
+        let report = result.map_err(EditorError::Check)?;
+        self.status = reproducibility_status(&report);
+        Ok(report)
     }
 
     pub fn project_name(&self) -> &str {
@@ -238,6 +325,35 @@ impl Editor {
     }
 }
 
+/// One line for the status bar: which cells match, or which differ.
+fn reproducibility_status(report: &ReproReport) -> String {
+    let differing: Vec<&str> = report
+        .cells
+        .iter()
+        .filter(|(_, check)| matches!(check, CellCheck::Differs { .. }))
+        .map(|(id, _)| id.as_str())
+        .collect();
+    if differing.is_empty() {
+        let matching = report
+            .cells
+            .iter()
+            .filter(|(_, check)| *check == CellCheck::Matches)
+            .count();
+        let never_run = report
+            .cells
+            .iter()
+            .filter(|(_, check)| *check == CellCheck::NotStored)
+            .count();
+        format!("Reproducible: {matching} cell(s) match, {never_run} never run.")
+    } else {
+        format!(
+            "Not reproducible: {} cell(s) differ ({}).",
+            differing.len(),
+            differing.join(", ")
+        )
+    }
+}
+
 /// An id no cell in `doc` uses yet: `cell-N` for the first free N.
 fn fresh_cell_id(doc: &Document) -> CellId {
     let mut n = doc.cells.len() + 1;
@@ -339,5 +455,49 @@ mod tests {
 
         ed.set_source(i, "2 + 3").unwrap();
         assert_eq!(ed.run().unwrap().ran.len(), 1);
+    }
+
+    #[test]
+    fn a_reproducibility_check_needs_agents_switched_on() {
+        let (_work, mut ed) = editor();
+        ed.create("d", "Draft").unwrap();
+        assert!(matches!(
+            ed.check_reproducibility(),
+            Err(EditorError::AgentsOff)
+        ));
+        assert!(ed.agent_log().is_empty());
+    }
+
+    #[test]
+    fn a_checked_document_reproduces_and_each_attempt_is_logged() {
+        let (_work, mut ed) = editor();
+        ed.create("d", "Draft").unwrap();
+        let i = ed.add_cell(CellKind::Code).unwrap();
+        ed.set_source(i, "6 * 7").unwrap();
+        ed.run().unwrap();
+
+        ed.set_agents_enabled(true);
+        let report = ed.check_reproducibility().unwrap();
+        assert!(report.is_reproducible());
+        assert_eq!(ed.status(), "Reproducible: 1 cell(s) match, 0 never run.");
+        assert_eq!(ed.agent_log().len(), 1);
+        assert_eq!(ed.agent_log()[0].denial, None);
+    }
+
+    #[test]
+    fn a_changed_stored_output_is_reported_as_not_reproducible() {
+        let (_work, mut ed) = editor();
+        ed.create("d", "Draft").unwrap();
+        let i = ed.add_cell(CellKind::Code).unwrap();
+        ed.set_source(i, "6 * 7").unwrap();
+        ed.run().unwrap();
+        if let CellBody::Code { outputs, .. } = &mut ed.document_mut().unwrap().cells[i].body {
+            *outputs = vec![Output::Text { text: "0".into() }];
+        }
+
+        ed.set_agents_enabled(true);
+        let report = ed.check_reproducibility().unwrap();
+        assert!(!report.is_reproducible());
+        assert!(ed.status().starts_with("Not reproducible: 1 cell(s) differ"));
     }
 }

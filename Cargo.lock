@@ -2632,6 +2632,7 @@ dependencies = [
 name = "research-app"
 version = "0.1.0"
 dependencies = [
+ "research-agents",
  "research-compute",
  "research-core",
  "research-doc",
@@ -2640,6 +2641,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tpt-appfront-canvas",
  "tpt-appfront-core",
+ "tpt-primitives",
 ]
 
 [[package]]
