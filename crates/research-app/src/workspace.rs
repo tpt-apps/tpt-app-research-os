@@ -120,6 +120,41 @@ mod tests {
     }
 
     #[test]
+    fn after_reopen_a_changed_cell_still_sees_earlier_variables() {
+        // The scope is not saved, so a reopened project must rerun the earlier cells
+        // that define `k`, even though only `e` changed.
+        let work = tempfile::tempdir().unwrap();
+        let dir = work.path().join("study");
+        {
+            let mut ws = Workspace::create(&dir, "study-1", "Study", 1).unwrap();
+            let mut doc = ws.new_document("doc-a", "Oscillator").unwrap();
+            doc.cells.push(code("k", "let k = 2.5;"));
+            doc.cells.push(code("e", "k * 4.0"));
+            ws.run_document(&mut doc, &Control::new()).unwrap();
+            ws.save_document(&doc).unwrap();
+        }
+
+        let mut ws = Workspace::open(&dir).unwrap();
+        let mut doc = ws.document("doc-a").unwrap().unwrap();
+        doc.cells[1].body = CellBody::Code {
+            language: research_compute::LANGUAGE.into(),
+            source: "k * 5.0".into(),
+            outputs: Vec::new(),
+        };
+        let summary = ws.run_document(&mut doc, &Control::new()).unwrap();
+        assert_eq!(summary.ran.len(), 2, "both cells must run after a reopen");
+        let CellBody::Code { outputs, .. } = &doc.cells[1].body else {
+            panic!("expected a code cell");
+        };
+        assert_eq!(
+            outputs,
+            &vec![Output::Text {
+                text: "12.5".into()
+            }]
+        );
+    }
+
+    #[test]
     fn a_document_runs_records_and_survives_reopening() {
         let work = tempfile::tempdir().unwrap();
         let dir = work.path().join("study");
