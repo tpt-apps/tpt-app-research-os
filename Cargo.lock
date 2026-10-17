@@ -2636,6 +2636,7 @@ dependencies = [
  "research-compute",
  "research-core",
  "research-doc",
+ "research-package",
  "research-store",
  "tempfile",
  "thiserror 2.0.21",

@@ -19,4 +19,5 @@ tpt-primitives = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+research-package = { workspace = true }
 tempfile = "3"
