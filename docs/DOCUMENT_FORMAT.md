@@ -65,6 +65,7 @@ Code cells also have:
   - `"text"`: `text`, a string. Standard output or a plain-text result.
   - `"error"`: `name` and `message`, strings.
   - `"table"`: `columns`, an array of strings, and `rows`, an array of arrays of strings. Each row has one entry per column.
+  - `"svg"`: `svg`, a string holding SVG text, from `show_plot`. The compute layer only accepts text that starts with `<svg`; the reader does not check it.
 
 Outputs are stored with the cell so a document can be read without re-running it. Whether outputs are current is the compute layer's concern, not the format's.
 
@@ -90,6 +91,7 @@ Import reads nbformat 4 notebooks. Export writes nbformat 4.5, so cells carry id
 | `stream` output | `text` output |
 | `execute_result` / `display_data` with `text/plain` | `text` output |
 | `error` output | `error` output |
+| `display_data` with `image/svg+xml` | `svg` output (its `text/plain` label is dropped) |
 | anything else (images, HTML, widgets) | dropped, with a warning |
 
 Document-level `title` and `metadata`, and each code cell's `language`, are stored under `metadata.research_os` so they survive a round-trip.
@@ -103,5 +105,7 @@ Things that do not round-trip:
 - rich outputs are dropped on import, as described above.
 
 ## Versioning
+
+Format version 1 is not released yet. The `svg` output type was added before the first release, so it is part of version 1. No reader outside this repository exists, so nothing is misread. From the first release on, a new output type or any other change that an older reader would not understand bumps `format_version`.
 
 Adding optional fields is not a version change. Anything that changes the meaning of an existing field, or makes an older reader misread a document, bumps `format_version`. Migrations between versions belong in `research-doc`, and are tested against stored sample files.

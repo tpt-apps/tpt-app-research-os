@@ -91,6 +91,7 @@ The key is derived from the passphrase with Argon2id (crate defaults). `decrypt`
 
 ## Known limits
 
-- Packing reads the whole project into memory. Large projects will need streaming, which is not yet implemented.
+- Packing hashes and writes files by streaming them from disk, but builds the archive in memory, so peak memory is about 1.7 to 2 times the project size. Measured on Windows with generated data (release build): 208 MiB packed in 6.7 s, 800 MiB in 25 s; peak working set 440 MiB and 1.6 GiB. Unpacking 800 MiB took 10 s.
+- Import holds the whole archive and every file in memory before anything is written, by design. Import refuses packages whose listed files total more than 2 GiB, so the practical package limit is 2 GiB, even though packing has no size limit of its own. A larger limit needs streamed import, and that would have to keep the rule that nothing reaches disk before verification passes.
 - Unpacking a package does not check the file system's free space first.
 - Zip timestamps are not preserved.
