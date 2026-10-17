@@ -96,7 +96,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Error-report submission process for buyers
 
 ## 10. Quality and release gates
-- [~] Verify no network calls anywhere: static gate added (`deny.toml` bans HTTP client crates). Not enough alone: Keystone (`tpt-keystone`) links tokio, rustls and mio, and its wire, mcp, mirror and synapse modules compile into the library. Runtime check: the editor, launched and left running for 4 s (including Keystone startup), had no TCP or UDP endpoints. A longer session and a firewall run are still needed. Upstream should gate those modules behind a feature
+- [~] Verify no network calls anywhere: static gate added (`deny.toml` bans HTTP client crates). Not enough alone: Keystone (`tpt-keystone`) links tokio, rustls and mio, and its wire, mcp, mirror and synapse modules compile into the library. Runtime check: the editor, launched and left running for 4 s (including Keystone startup), had no TCP or UDP endpoints. A 60 s idle run also had no TCP or UDP endpoints. Still open: a session that runs cells and saves, and a firewall run. Upstream should gate those modules behind a feature
 - [~] Verify no telemetry: static gate added (`deny.toml` bans opentelemetry and sentry). Keystone's OTLP exporter is off in this build. Runtime check: no extra endpoints seen, as above
 - [ ] Success-criteria walk-through (spec §9): create project → run workflow → store results → move to another machine
 - [ ] Reproducibility test: same project, two machines, identical results
