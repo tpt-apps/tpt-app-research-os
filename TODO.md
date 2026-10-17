@@ -42,7 +42,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Crash-safety and concurrent-open tests: concurrent open refused, manifest and blob writes atomic, reopen survives, and a child process that aborts mid-write leaves a project that reopens with every completed run (`tests/crash.rs`)
 
 ## 4. research-doc (computational documents)
-- [x] Format spec in `docs/DOCUMENT_FORMAT.md`: cells (code, markdown, output), metadata, stable cell ids
+- [x] Format spec in `docs/DOCUMENT_FORMAT.md`: cells (code, markdown, output), metadata, stable cell ids. Format version stays 1 until the first release, since no reader exists yet; the `svg` output is part of it. The version is bumped from the first release on
 - [x] Serialize / deserialize with deterministic output (diff-friendly, versionable)
 - [~] `.ipynb` import (code, markdown, outputs; flags cells outside the hosted-language list). The list is a parameter, and `research_doc::HOSTED_LANGUAGES` now holds the one language the compute layer runs (`rhai`), checked against the compute crate in a test
 - [x] `.ipynb` export (nbformat 4.5)
@@ -52,7 +52,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Choose the cell language: Rhai (decision and reasons in `docs/ARCHITECTURE.md`; `tpt-mathr` is a numeric library, not a language)
 - [~] Bind `tpt-math` units / linalg / probability / autodiff: units (`qty`, `qty_in`, dimension-checked `+ - * /`), `solve` (linalg) and `normal` (probability) bound and tested. Autodiff: `diff(expr, x)` and `diff(expr, x, params)` (forward mode, exact to rounding) bound and tested. DAE, events and sensitivities are still open for ODE
 - [~] Bind `tpt-science` ODE solvers: `ode_solve` runs the four explicit and implicit methods from Rhai, tested (exponential decay, parameters, stiff problem, bad inputs). DAE, events and sensitivities not yet
-- [~] Cell execution and re-run of stale cells: cells run in order on a shared scope, a changed cell reruns with everything after it. A true dependency graph is not built
+- [~] Cell execution and re-run of stale cells: cells run in order on a shared scope, a changed cell reruns with everything after it. A true dependency graph is not built. The stale-cell cache is in memory, so after a reopen the first run reruns every cell; saving the fingerprints is open
 - [x] Cancellation, timeouts, memory limit: cancel flag, wall-clock timeout, operation, string and collection limits. All tested
 - [x] Deterministic seeding for reproducibility: `uniform(index)` from the session seed, tested across sessions
 - [x] Output capture: text, errors, tables (`show_table(columns, rows)`) and plots (`show_plot(svg)`, which must start with `<svg`). A recorded plot is stored as a blob with media type `image/svg+xml`, and the notebook export and import keep it as SVG. The window shows a plot as a size line, not an image; a rendered view would need AppFront image support
@@ -76,7 +76,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [x] Optional encryption on export (chacha20poly1305 + argon2, as in digital-twin)
 - [x] Reject malformed or malicious archives: traversal, reserved names, case collisions, unlisted or duplicate entries, size lies, oversized totals. Zip-bomb reads are bounded by declared size
 - [x] Version compatibility checks (package and project format versions)
-- [~] Packing streams each file from disk: one pass hashes, a second writes the archive, and each file is checked against its hash as it is written (`build_zip_checked`, tested). The archive itself is still built in memory, and so is import. Import stays in memory by design, because nothing may reach disk before verification passes (module docs). Streaming the archive output and encryption would need a streamed AEAD; not started
+- [x] Packing: decision is no streaming for the MVP. Files are hashed and written from disk, each checked against its hash as it is written (`build_zip_checked`, tested). Measured in `docs/PACKAGE_FORMAT.md`: peak memory is about 1.7 to 2 times the project size, and 800 MiB packs in about 25 s (release). Import is in memory by design, and refuses more than 2 GiB, which is the real package limit. Streamed import or encryption would be needed to go beyond that
 
 ## 8. research-agents (optional, light)
 - [x] Capability model using `tpt-primitives` (deny by default): agent starts with no grants, stopped by default, every attempt logged. Lease and epoch bindings are denied until the app supplies them
@@ -91,7 +91,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [ ] Release builds for Windows, macOS, Linux
 - [ ] Code signing and installers (needs certificates)
 - [~] Bundle example research projects: `cargo run -p research-app --example demo_project -- <dir>` builds a project with an ODE, a units cell, sampling and a linear solve, all run. Not yet packaged into the release zip
-- [ ] Quick-start guide (PDF)
+- [x] Quick-start guide: `docs/QUICKSTART.md`, with `docs/QUICKSTART.pdf` rendered from it. Regenerate the PDF after editing the Markdown
 - [ ] Finalize [GUMROAD.md](GUMROAD.md) listing and publish
 - [ ] Error-report submission process for buyers
 
@@ -100,7 +100,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] Verify no telemetry: static gate added (`deny.toml` bans opentelemetry and sentry). Keystone's OTLP exporter is off in this build. Runtime check: no extra endpoints seen, as above
 - [ ] Success-criteria walk-through (spec §9): create project → run workflow → store results → move to another machine
 - [ ] Reproducibility test: same project, two machines, identical results
-- [ ] Performance check on a mid-range laptop
+- [~] Performance check: measured on the development PC, not a mid-range laptop (release build: 800 MiB pack 25 s, unpack 10 s, peak 1.6 GiB). Laptop run still open
 - [x] Security review of package import and agent sandbox: no exploitable issue found. Lease-bound capabilities are tested as denied (no lease is supplied). Decisions: the agent action log stays unbounded, because each entry is the audit record and agents only run on user action; a log cap would need its own design. Import holds the archive in memory (see §7), by design
 - [x] README, CONTRIBUTING, SECURITY docs. CI now runs `cargo deny check bans licenses sources`
 
