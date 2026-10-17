@@ -116,8 +116,7 @@ pub fn apply(editor: &mut Editor, msg: Msg) {
         }
         Msg::ToggleAgents => {
             let on = !editor.agents_enabled();
-            editor.set_agents_enabled(on);
-            Ok(())
+            editor.set_agents_enabled(on)
         }
         Msg::CheckReproducibility => editor.check_reproducibility().map(|_| ()),
     };

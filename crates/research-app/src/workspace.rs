@@ -91,6 +91,16 @@ impl Workspace {
         Ok(summary)
     }
 
+    /// An application setting kept with the project, such as `app.agents`.
+    pub fn setting(&self, key: &str) -> Result<Option<String>> {
+        Ok(self.store.setting(key)?)
+    }
+
+    /// Save an application setting with the project.
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        Ok(self.store.set_setting(key, value)?)
+    }
+
     /// Every recorded run, oldest first.
     pub fn runs(&self) -> Result<Vec<Run>> {
         Ok(self.store.list_runs()?)

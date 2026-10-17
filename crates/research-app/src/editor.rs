@@ -16,6 +16,8 @@ use tpt_primitives::LogicalTime;
 const CHECKER: &str = "reproducibility-checker";
 /// Authority domain the checker's capabilities are minted in.
 const DOMAIN: &str = "research";
+/// Project setting holding whether agents are on: `on` or `off`.
+const AGENTS_SETTING: &str = "app.agents";
 /// Seed the editor uses for runs, so a check reproduces what the window ran.
 const SEED: u64 = 0;
 
@@ -91,13 +93,16 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(workspace: Workspace) -> Self {
+        // A setting that cannot be read counts as off, the safe default.
+        let agents_enabled =
+            workspace.setting(AGENTS_SETTING).ok().flatten().as_deref() == Some("on");
         Self {
             workspace,
             document: None,
             status: "Open or create a document to start.".into(),
             selected_runs: Vec::new(),
             comparison: None,
-            agents_enabled: false,
+            agents_enabled,
             agent_log: Vec::new(),
             clock: 0,
         }
@@ -108,9 +113,14 @@ impl Editor {
         self.agents_enabled
     }
 
-    pub fn set_agents_enabled(&mut self, on: bool) {
+    /// Turn agents on or off and save the choice with the project, so it is still
+    /// set when the project is opened again.
+    pub fn set_agents_enabled(&mut self, on: bool) -> Result<()> {
+        self.workspace
+            .set_setting(AGENTS_SETTING, if on { "on" } else { "off" })?;
         self.agents_enabled = on;
         self.status = format!("Agents {}.", if on { "on" } else { "off" });
+        Ok(())
     }
 
     /// Every action attempted by a checker agent, oldest first.
@@ -455,6 +465,22 @@ mod tests {
     }
 
     #[test]
+    fn the_agents_setting_is_saved_with_the_project() {
+        let work = tempfile::tempdir().unwrap();
+        let dir = work.path().join("p");
+        {
+            let mut ed = Editor::new(Workspace::create(&dir, "p", "Project", 1).unwrap());
+            assert!(!ed.agents_enabled());
+            ed.set_agents_enabled(true).unwrap();
+        }
+        let mut ed = Editor::new(Workspace::open(&dir).unwrap());
+        assert!(ed.agents_enabled(), "on must survive a reopen");
+        ed.set_agents_enabled(false).unwrap();
+        drop(ed);
+        assert!(!Editor::new(Workspace::open(&dir).unwrap()).agents_enabled());
+    }
+
+    #[test]
     fn a_reproducibility_check_needs_agents_switched_on() {
         let (_work, mut ed) = editor();
         ed.create("d", "Draft").unwrap();
@@ -473,7 +499,7 @@ mod tests {
         ed.set_source(i, "6 * 7").unwrap();
         ed.run().unwrap();
 
-        ed.set_agents_enabled(true);
+        ed.set_agents_enabled(true).unwrap();
         let report = ed.check_reproducibility().unwrap();
         assert!(report.is_reproducible());
         assert_eq!(ed.status(), "Reproducible: 1 cell(s) match, 0 never run.");
@@ -492,7 +518,7 @@ mod tests {
             *outputs = vec![Output::Text { text: "0".into() }];
         }
 
-        ed.set_agents_enabled(true);
+        ed.set_agents_enabled(true).unwrap();
         let report = ed.check_reproducibility().unwrap();
         assert!(!report.is_reproducible());
         assert!(ed

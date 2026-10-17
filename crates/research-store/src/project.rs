@@ -184,6 +184,32 @@ impl ProjectStore {
         ))
     }
 
+    /// A setting the application keeps with the project, or `None` if it is unset.
+    /// Keys must start with `app.`, so the store's own entries cannot be changed.
+    pub fn setting(&self, key: &str) -> Result<Option<String>> {
+        check_setting_key(key)?;
+        let rows = self.rows(&format!(
+            "SELECT setting_value FROM meta WHERE setting = {}",
+            sql_text(key)
+        ))?;
+        Ok(rows.first().and_then(|row| row.first()).cloned())
+    }
+
+    /// Set an application setting, replacing any earlier value. Same key rules as
+    /// [`ProjectStore::setting`].
+    pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
+        check_setting_key(key)?;
+        self.exec(&format!(
+            "DELETE FROM meta WHERE setting = {}",
+            sql_text(key)
+        ))?;
+        self.exec(&format!(
+            "INSERT INTO meta (setting, setting_value) VALUES ({}, {})",
+            sql_text(key),
+            sql_text(value)
+        ))
+    }
+
     /// Run a statement that returns no rows.
     pub(crate) fn exec(&self, sql: &str) -> Result<()> {
         execute_query(sql, self.db.clone()).map_err(db_err)?;
@@ -235,6 +261,20 @@ fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 /// Quote a value as a SQL string literal, doubling embedded single quotes.
+/// Application setting keys: `app.` followed by letters, digits, `.`, `-` or `_`.
+fn check_setting_key(key: &str) -> Result<()> {
+    let body = key.strip_prefix("app.").unwrap_or("");
+    let valid = !body.is_empty()
+        && body
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'));
+    if valid {
+        Ok(())
+    } else {
+        Err(StoreError::InvalidSettingKey(key.to_string()))
+    }
+}
+
 pub(crate) fn sql_text(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
 }
@@ -250,6 +290,34 @@ mod tests {
 
     fn manifest(name: &str) -> ProjectManifest {
         ProjectManifest::new(ProjectId::new("proj-1").unwrap(), name, 1_700_000_000).unwrap()
+    }
+
+    #[test]
+    fn app_settings_persist_and_the_schema_key_is_protected() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("p");
+        {
+            let project = ProjectStore::create(&root, &manifest("S")).unwrap();
+            assert_eq!(project.setting("app.agents").unwrap(), None);
+            project.set_setting("app.agents", "on").unwrap();
+            project.set_setting("app.agents", "off").unwrap();
+        }
+        let project = ProjectStore::open(&root).unwrap();
+        assert_eq!(
+            project.setting("app.agents").unwrap().as_deref(),
+            Some("off")
+        );
+        assert!(matches!(
+            project.set_setting("schema_version", "99"),
+            Err(StoreError::InvalidSettingKey(_))
+        ));
+        assert!(matches!(
+            project.setting("app."),
+            Err(StoreError::InvalidSettingKey(_))
+        ));
+        // The schema version is untouched, so the project still opens.
+        drop(project);
+        assert!(ProjectStore::open(&root).is_ok());
     }
 
     #[test]

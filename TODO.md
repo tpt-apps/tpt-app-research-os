@@ -64,7 +64,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 - [~] Document editor: documents list, open/new, cell source edits, add code and text cells, run, save, and outputs shown as text. Headless logic tested (`editor.rs`, `view.rs`). Narrative rendering of text cells is plain text; no inline plots or tables yet
 - [ ] Plot viewer
 - [~] Experiment/run comparison view: tick runs in the side list, compare them side by side (differing inputs, results per run, missing results shown as —). Headless logic tested (`compare.rs`, `view.rs`). Not yet checked in the window; plot results not shown
-- [~] Settings: agents on/off (off by default; "Check reproducibility" needs it on). Not persisted yet, so it resets on restart. Paths: none to set yet
+- [x] Settings: agents on/off, saved with the project as `app.agents` (`ProjectStore::set_setting`, tested). Off by default; "Check reproducibility" needs it on. Paths: none to set yet
 - [ ] Keyboard shortcuts, light/dark theme: blocked upstream. `tpt-appfront-canvas` passes no key events to the app, and `run_native` gives no hook to set the egui visuals, so the app follows the egui default
 - [x] Decide MVP exposure of library surface vs library-only (spec §10). Decision: the MVP UI exposes documents, runs, comparison and packaging only. Library-only: the `tpt-math` bindings beyond units/solve/normal, DAE/events, agents' suggestion helper, chemistry and FEM
 
@@ -81,7 +81,7 @@ Legend: `[x]` done · `[~]` partly done · `[ ]` open. Section numbers refer to 
 ## 8. research-agents (optional, light)
 - [x] Capability model using `tpt-primitives` (deny by default): agent starts with no grants, stopped by default, every attempt logged. Lease and epoch bindings are denied until the app supplies them
 - [x] Reproducibility check (re-run and compare): `research_agents::check_document` reruns a copy from scratch with the same seed and reports per-cell matches, differences and never-run cells. `check_with_agent` requires a `document:<id>` `rerun` grant. Checks documents, not runs across machines. Wired into the window as "Check reproducibility" (needs agents on); each check uses a fresh agent holding only the rerun grant
-- [ ] Analysis suggestion helper
+- [ ] Analysis suggestion helper. Decision: deferred. The spec does not define what it suggests, so it needs a spec before any code
 - [x] No large model download by default (spec §8): nothing in the crate downloads anything
 - [~] Full action log: done (`Agent::log`). UI indicator: `Agent::is_running` exists, but checks run synchronously and stop the agent, so there is nothing to show while one runs. The attempts are kept in `Editor::agent_log`
 

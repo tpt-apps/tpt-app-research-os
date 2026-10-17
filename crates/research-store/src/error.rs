@@ -40,6 +40,10 @@ pub enum StoreError {
     #[error("store schema version {found} is newer than this build supports ({supported})")]
     SchemaTooNew { found: u32, supported: u32 },
 
+    /// A setting key was not `app.` followed by a plain name.
+    #[error("setting key {0:?} must start with app. and use letters, digits, '.', '-' or '_'")]
+    InvalidSettingKey(String),
+
     /// Stored data does not match what this build expects.
     #[error("stored data is corrupt: {0}")]
     Corrupt(String),
