@@ -41,7 +41,7 @@ The window has three areas:
 
 1. Click **New document**. It is titled `Untitled N` and opens on the right.
 2. Click **Add code cell**, then type in the box: for example `let k = 2.5; k * 4.0`.
-3. Click **Run**. The status line says how many cells ran and how many were kept. Within one session, a cell that has not changed since its last run is kept. After you reopen a project, the first **Run** reruns every cell, because that cache is not saved yet.
+3. Click **Run**. The status line says how many cells ran and how many were kept. Within one session, a cell that has not changed since its last run is kept. After you reopen a project, the first **Run** reruns every cell. The variables from earlier cells are not saved between sessions, so a later cell could not read them otherwise. The reruns are deterministic, so the results match.
 4. Click **Save**. The document and its outputs are written to the project.
 
 Code cells are written in Rhai. Use decimal literals for floats (`2.0`, not `2`) in the math functions. Two cell functions are worth knowing:
